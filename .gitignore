@@ -1,1 +1,13 @@
-.superpowers/
+node_modules
+dist
+dev-dist
+.env
+.env.*
+!.env.example
+.vercel
+.superpowers
+supabase/.temp
+supabase/.branches
+*.log
+.DS_Store
+Thumbs.db

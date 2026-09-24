@@ -1,0 +1,41 @@
+:root {
+  color-scheme: dark;
+  --bg: #0f1115;
+  --bg-elev: #171a21;
+  --bg-hover: #1e222b;
+  --border: #2a2f3a;
+  --text: #e6e8ee;
+  --text-dim: #9aa3b2;
+  --accent: #7c5cff;
+  --accent-text: #ffffff;
+  --danger: #ff5c7a;
+  --ok: #3ddc97;
+  --radius: 12px;
+  --font: system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --bg: #f6f7fb;
+    --bg-elev: #ffffff;
+    --bg-hover: #eef0f6;
+    --border: #d9dde7;
+    --text: #171a21;
+    --text-dim: #5d6675;
+  }
+}
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: var(--accent); }
+.screen { max-width: 760px; margin: 0 auto; padding: 16px; min-height: 100%; }
