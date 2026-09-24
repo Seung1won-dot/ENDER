@@ -290,6 +290,7 @@ dev-dist
 .env.*
 !.env.example
 .vercel
+.superpowers
 supabase/.temp
 supabase/.branches
 *.log
