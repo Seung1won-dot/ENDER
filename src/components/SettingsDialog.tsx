@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { getDeviceName, setDeviceName } from '../lib/device'
 import { EXPIRY_PRESETS, type ExpiryPreset } from '../lib/expiry'
+import { TokenSection } from './TokenSection'
 
 interface Props {
   open: boolean
@@ -61,7 +62,7 @@ export function SettingsDialog({ open, onClose, email, expiry, onExpiryChange, o
         </select>
       </label>
 
-      <div id="settings-extra" />
+      <TokenSection />
 
       <div className="row end">
         <button className="ghost" onClick={() => void supabase.auth.signOut()}>
