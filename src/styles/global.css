@@ -39,3 +39,34 @@ button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
 a { color: var(--accent); }
 .screen { max-width: 760px; margin: 0 auto; padding: 16px; min-height: 100%; }
+
+.dim { color: var(--text-dim); }
+.notice { background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
+
+.auth { max-width: 380px; padding-top: 12vh; }
+.auth h1 { margin-bottom: 4px; }
+.auth-form { display: grid; gap: 12px; margin: 24px 0 12px; }
+.auth-form label { display: grid; gap: 6px; font-size: 13px; color: var(--text-dim); }
+
+input[type='text'], input[type='email'], input[type='password'], input[type='search'], select, textarea {
+  width: 100%;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  outline: none;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+
+button.primary { background: var(--accent); color: var(--accent-text); border: 0; border-radius: 10px; padding: 10px 14px; font-weight: 600; }
+button.ghost { background: transparent; color: var(--text-dim); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; }
+button.ghost:hover { background: var(--bg-hover); color: var(--text); }
+button.link { background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; }
+button:disabled { opacity: 0.6; cursor: default; }
+
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.topbar h1 { font-size: 20px; margin: 0; }
+
+.toast-host { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); display: grid; gap: 8px; z-index: 50; pointer-events: none; }
+.toast { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.35); }
+.toast-error { border-color: var(--danger); }
