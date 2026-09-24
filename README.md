@@ -17,7 +17,7 @@
 
 1. https://supabase.com 에서 프로젝트 생성 (Region: Seoul 권장).
 2. SQL Editor 에서 `supabase/migrations/0001_init.sql`, `0002_storage.sql` 을 순서대로 실행.
-3. Authentication → Providers → Email: 개인용이면 **Confirm email OFF** 권장.
+3. Authentication → Sign In / Providers: 상단 **"Allow new users to sign up" ON** 확인. Email 항목의 **Enable Email provider ON**, 개인용이면 **Confirm email OFF** 권장. (토글 하나를 끄다가 옆 토글까지 꺼지는 실수가 잦다.)
 4. Authentication → URL Configuration:
    - Site URL: 배포 주소 (예: `https://enderchest.vercel.app`)
    - Redirect URLs: `http://localhost:5173/**`, `https://enderchest.vercel.app/**`
@@ -45,6 +45,41 @@ npm run dev            # http://localhost:5173
 - PC/맥: 브라우저 주소창의 "설치" 아이콘 → 독립 창 앱으로.
 - 아이폰: Safari → 공유 → "홈 화면에 추가".
 - ⚙ 설정에서 기기 이름을 정하면 카드에 출처로 표시된다.
+
+## iOS 단축어 (아이폰에서 넣기)
+
+iOS Safari 는 PWA 공유 대상을 지원하지 않아 단축어가 공유 시트 역할을 한다.
+
+### 준비
+1. 앱 ⚙ 설정 → "새 토큰" → `ec_...` 복사 (한 번만 표시된다).
+2. 함수 주소: `https://<프로젝트 ref>.supabase.co/functions/v1/share`
+
+### 단축어 A: 텍스트·링크 보내기
+1. 단축어 앱 → + → 이름 "Ender Chest"
+2. **공유 시트에서 받기** 켜기. 받을 유형: 텍스트, URL, Safari 웹 페이지.
+3. 동작 추가 **URL의 콘텐츠 가져오기**
+   - URL: 위 함수 주소
+   - 방법: POST
+   - 헤더: `X-Share-Token` = 복사한 토큰, `X-Source` = `iPhone`
+   - 요청 본문: JSON
+     - `text` = `단축어 입력` (변수)
+4. (선택) **알림 표시**: "상자에 넣었어요"
+5. 공유 시트에서 사용: Safari 공유 → Ender Chest.
+
+### 단축어 B: 사진·파일 보내기
+1. 새 단축어 "Ender Chest 파일". 공유 시트 받을 유형: 이미지, 파일, PDF, 미디어.
+2. **URL의 콘텐츠 가져오기**
+   - 방법 POST, 헤더 동일
+   - 요청 본문: **양식(Form)**
+     - 필드 `file`, 유형 **파일**, 값 `단축어 입력`
+3. 사진 앱 → 공유 → Ender Chest 파일. 여러 장을 선택하면 각각 업로드된다.
+
+### 확인
+PC 화면에 출처 `iPhone` 카드가 1~2초 안에 뜬다. 안 되면: 토큰 오타(공백 포함 여부), 함수 주소의 프로젝트 ref, 단축어의 "공유 시트에서 받기" 유형을 확인.
+응답 본문이 `{"ok":false,"error":"..."}` 면 그 메시지가 원인이다. 단축어 마지막에 "결과 보기" 동작을 넣으면 응답을 볼 수 있다.
+
+### 만료 지정
+JSON 본문에 `"expires_in": "1h" | "1d" | "7d" | "never"` 를 추가할 수 있다. 없으면 7일.
 
 ## 구조
 
