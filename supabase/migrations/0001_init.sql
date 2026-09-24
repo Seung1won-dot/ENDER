@@ -21,18 +21,31 @@ create index if not exists items_expires_idx on public.items (expires_at) where 
 
 alter table public.items enable row level security;
 
+drop policy if exists "items owner select" on public.items;
 create policy "items owner select" on public.items
   for select to authenticated using (auth.uid() = user_id);
+drop policy if exists "items owner insert" on public.items;
 create policy "items owner insert" on public.items
   for insert to authenticated with check (auth.uid() = user_id);
+drop policy if exists "items owner update" on public.items;
 create policy "items owner update" on public.items
   for update to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
+drop policy if exists "items owner delete" on public.items;
 create policy "items owner delete" on public.items
   for delete to authenticated using (auth.uid() = user_id);
 
 -- Realtime: DELETE 이벤트에 user_id 필터를 적용하려면 replica identity full 필요
 alter table public.items replica identity full;
-alter publication supabase_realtime add table public.items;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'items'
+  ) then
+    alter publication supabase_realtime add table public.items;
+  end if;
+end $$;
 
 create table if not exists public.share_tokens (
   id            uuid primary key default gen_random_uuid(),
@@ -45,11 +58,15 @@ create table if not exists public.share_tokens (
 
 alter table public.share_tokens enable row level security;
 
+drop policy if exists "share_tokens owner select" on public.share_tokens;
 create policy "share_tokens owner select" on public.share_tokens
   for select to authenticated using (auth.uid() = user_id);
+drop policy if exists "share_tokens owner insert" on public.share_tokens;
 create policy "share_tokens owner insert" on public.share_tokens
   for insert to authenticated with check (auth.uid() = user_id);
+drop policy if exists "share_tokens owner update" on public.share_tokens;
 create policy "share_tokens owner update" on public.share_tokens
   for update to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
+drop policy if exists "share_tokens owner delete" on public.share_tokens;
 create policy "share_tokens owner delete" on public.share_tokens
   for delete to authenticated using (auth.uid() = user_id);
