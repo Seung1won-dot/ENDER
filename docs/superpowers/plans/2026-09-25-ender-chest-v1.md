@@ -21,8 +21,7 @@
 - `.env` 는 절대 커밋하지 않는다. `service_role` 키는 저장소 어디에도 없어야 한다 (`grep -r service_role src supabase` 결과 0건, 단 Edge Function 내부의 `Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')` 호출은 예외).
 - 커밋 메시지는 Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `test:`). 각 커밋 끝에 `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`.
 - git 커밋은 `git -c user.name="Seung1_dot" -c user.email="may0909@sch.ac.kr" commit ...` 형태로 (전역 git 설정이 없을 수 있음). 첫 Task에서 로컬 저장소 설정으로 고정한다.
-- **Node PATH 주의**: Node는 관리자 권한 없이 포터블 zip으로 `C:SERS	EMPADMIN
-ODEJS` ̗� ̄�̹�͖�ˋ�(WINGET MSIˊ� UAC ̊�̝� ͕�̚�). ̃� ̅�̗� PATHʰ� ̕� ̞�͞� ̈� ̞�ˋ�. 모든 npm/node 명령 앞에 `export PATH="/c/Users/tempadmin/nodejs:$PATH"` 를 붙인다 (Bash 툴 기준).
+- **Node PATH 주의**: Node는 관리자 권한 없이 포터블 zip으로 `C:\Users\tempadmin\nodejs` 에 설치했다(winget MSI는 UAC 승인이 필요해 실패). 새 셸에 PATH가 안 잡힐 수 있으니 모든 npm/node 명령 앞에 `export PATH="/c/Users/tempadmin/nodejs:$PATH"` 를 붙인다 (Bash 툴 기준).
 - 실행 명령은 저장소 루트 `D:\EC LAB\ender` (Bash: `/d/EC\ LAB/ender`) 에서 실행한다. 경로에 공백이 있으므로 항상 따옴표로 감싼다.
 
 ## 파일 구조
