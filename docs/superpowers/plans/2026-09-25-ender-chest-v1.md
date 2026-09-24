@@ -615,7 +615,7 @@ export function sanitizeFileName(name: string): string {
     .normalize('NFKD')
     .replace(/[^A-Za-z0-9._-]+/g, '_')
     .replace(/_+/g, '_')
-    .replace(/^.+/, '')
+    .replace(/^\.+/, '')
   const trimmed = cleaned.slice(0, 100)
   return /[A-Za-z0-9]/.test(trimmed) ? trimmed : 'file'
 }
@@ -3611,7 +3611,7 @@ export function sanitizeFileName(name: string): string {
     .normalize('NFKD')
     .replace(/[^A-Za-z0-9._-]+/g, '_')
     .replace(/_+/g, '_')
-    .replace(/^.+/, '')
+    .replace(/^\.+/, '')
   const trimmed = cleaned.slice(0, 100)
   return /[A-Za-z0-9]/.test(trimmed) ? trimmed : 'file'
 }
