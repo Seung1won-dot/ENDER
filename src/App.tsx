@@ -1,8 +1,23 @@
+import { useSession } from './hooks/useSession'
+import { AuthScreen } from './components/AuthScreen'
+import { ChestScreen } from './components/ChestScreen'
+import { ToastHost } from './components/ToastHost'
+
 export function App() {
+  const session = useSession()
+
   return (
-    <main className="screen">
-      <h1>📦 Ender Chest</h1>
-      <p>스캐폴드 완료</p>
-    </main>
+    <>
+      {session === undefined ? (
+        <main className="screen">
+          <p className="dim">불러오는 중…</p>
+        </main>
+      ) : session ? (
+        <ChestScreen session={session} />
+      ) : (
+        <AuthScreen />
+      )}
+      <ToastHost />
+    </>
   )
 }
