@@ -96,3 +96,13 @@ button:disabled { opacity: 0.6; cursor: default; }
 button.icon { background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 4px 8px; color: var(--text-dim); font-size: 13px; }
 button.icon:hover { background: var(--bg-hover); color: var(--text); border-color: var(--border); }
 button.icon.danger:hover { color: var(--danger); }
+
+.composer { background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; margin-bottom: 14px; }
+.composer textarea { border: 0; background: transparent; padding: 6px 4px; resize: vertical; min-height: 44px; }
+.composer textarea:focus { border: 0; }
+.composer-bar { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.composer-bar select { width: auto; padding: 4px 8px; }
+.spacer { flex: 1; }
+
+.drop-overlay { position: fixed; inset: 0; background: rgba(15, 17, 21, 0.75); display: grid; place-items: center; z-index: 40; pointer-events: none; }
+.drop-box { border: 2px dashed var(--accent); border-radius: 16px; padding: 32px 40px; font-size: 18px; background: var(--bg-elev); }
