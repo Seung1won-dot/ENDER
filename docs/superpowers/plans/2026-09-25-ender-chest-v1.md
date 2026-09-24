@@ -21,7 +21,8 @@
 - `.env` 는 절대 커밋하지 않는다. `service_role` 키는 저장소 어디에도 없어야 한다 (`grep -r service_role src supabase` 결과 0건, 단 Edge Function 내부의 `Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')` 호출은 예외).
 - 커밋 메시지는 Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `test:`). 각 커밋 끝에 `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`.
 - git 커밋은 `git -c user.name="Seung1_dot" -c user.email="may0909@sch.ac.kr" commit ...` 형태로 (전역 git 설정이 없을 수 있음). 첫 Task에서 로컬 저장소 설정으로 고정한다.
-- **Node PATH 주의**: Node를 이 세션 중에 설치했다면 새 셸에도 PATH가 안 잡힐 수 있다. 모든 npm/node 명령 앞에 `export PATH="/c/Program Files/nodejs:$PATH"` 를 붙인다 (Bash 툴 기준).
+- **Node PATH 주의**: Node는 관리자 권한 없이 포터블 zip으로 `C:SERS	EMPADMIN
+ODEJS` ̗� ̄�̹�͖�ˋ�(WINGET MSIˊ� UAC ̊�̝� ͕�̚�). ̃� ̅�̗� PATHʰ� ̕� ̞�͞� ̈� ̞�ˋ�. 모든 npm/node 명령 앞에 `export PATH="/c/Users/tempadmin/nodejs:$PATH"` 를 붙인다 (Bash 툴 기준).
 - 실행 명령은 저장소 루트 `D:\EC LAB\ender` (Bash: `/d/EC\ LAB/ender`) 에서 실행한다. 경로에 공백이 있으므로 항상 따옴표로 감싼다.
 
 ## 파일 구조
@@ -83,10 +84,10 @@ Expected: "Successfully installed". 이미 설치돼 있으면 "already installe
 - [ ] **Step 2: 설치 확인 (Bash 툴)**
 
 ```bash
-export PATH="/c/Program Files/nodejs:$PATH" && node --version && npm --version
+export PATH="/c/Users/tempadmin/nodejs:$PATH" && node --version && npm --version
 ```
 
-Expected: `v22.x.x` 와 `10.x.x` 계열. `command not found` 면 `ls "/c/Program Files/nodejs"` 로 경로 확인 후 PATH 수정.
+Expected: `v22.x.x` 와 `10.x.x` 계열. `command not found` 면 `ls "/c/Users/tempadmin/nodejs"` 로 경로 확인 후 PATH 수정.
 
 - [ ] **Step 3: git 로컬 설정 고정**
 
@@ -308,7 +309,7 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 - [ ] **Step 10: 의존성 설치 및 검증**
 
 ```bash
-export PATH="/c/Program Files/nodejs:$PATH" && cd "/d/EC LAB/ender" && npm install && npm run check
+export PATH="/c/Users/tempadmin/nodejs:$PATH" && cd "/d/EC LAB/ender" && npm install && npm run check
 ```
 
 Expected: `tsc` 에러 0, vitest 는 "No test files found" 를 출력하고 종료 코드 0, `vite build` 가 `dist/` 생성.
@@ -393,7 +394,7 @@ describe('linkTitle', () => {
 - [ ] **Step 2: 실패 확인**
 
 ```bash
-export PATH="/c/Program Files/nodejs:$PATH" && cd "/d/EC LAB/ender" && npx vitest run src/lib/detect.test.ts
+export PATH="/c/Users/tempadmin/nodejs:$PATH" && cd "/d/EC LAB/ender" && npx vitest run src/lib/detect.test.ts
 ```
 
 Expected: FAIL — `Failed to resolve import "./detect"`.
@@ -436,7 +437,7 @@ export function linkTitle(url: string): string {
 - [ ] **Step 4: 통과 확인**
 
 ```bash
-export PATH="/c/Program Files/nodejs:$PATH" && cd "/d/EC LAB/ender" && npx vitest run src/lib/detect.test.ts
+export PATH="/c/Users/tempadmin/nodejs:$PATH" && cd "/d/EC LAB/ender" && npx vitest run src/lib/detect.test.ts
 ```
 
 Expected: 11 passed.
@@ -576,7 +577,7 @@ describe('clipboardFileName', () => {
 - [ ] **Step 2: 실패 확인**
 
 ```bash
-export PATH="/c/Program Files/nodejs:$PATH" && cd "/d/EC LAB/ender" && npx vitest run src/lib/files.test.ts
+export PATH="/c/Users/tempadmin/nodejs:$PATH" && cd "/d/EC LAB/ender" && npx vitest run src/lib/files.test.ts
 ```
 
 Expected: FAIL — import 해석 실패.
@@ -662,7 +663,7 @@ export function clipboardFileName(original: string, mime: string, now: Date): st
 - [ ] **Step 4: 통과 확인**
 
 ```bash
-export PATH="/c/Program Files/nodejs:$PATH" && cd "/d/EC LAB/ender" && npx vitest run src/lib/files.test.ts
+export PATH="/c/Users/tempadmin/nodejs:$PATH" && cd "/d/EC LAB/ender" && npx vitest run src/lib/files.test.ts
 ```
 
 Expected: 모든 테스트 passed. `sanitizeFileName('회의 자료 (최종).pdf')` 는 NFKD 후 한글이 전부 `_` 로 합쳐져 `_.pdf` 가 된다.
@@ -743,7 +744,7 @@ describe('describeRemaining', () => {
 - [ ] **Step 2: 실패 확인**
 
 ```bash
-export PATH="/c/Program Files/nodejs:$PATH" && cd "/d/EC LAB/ender" && npx vitest run src/lib/expiry.test.ts
+export PATH="/c/Users/tempadmin/nodejs:$PATH" && cd "/d/EC LAB/ender" && npx vitest run src/lib/expiry.test.ts
 ```
 
 Expected: FAIL.
@@ -795,7 +796,7 @@ export function describeRemaining(expiresAt: string | null, now: Date = new Date
 - [ ] **Step 4: 통과 확인**
 
 ```bash
-export PATH="/c/Program Files/nodejs:$PATH" && cd "/d/EC LAB/ender" && npx vitest run src/lib/expiry.test.ts
+export PATH="/c/Users/tempadmin/nodejs:$PATH" && cd "/d/EC LAB/ender" && npx vitest run src/lib/expiry.test.ts
 ```
 
 Expected: passed.
@@ -881,7 +882,7 @@ describe('get/setDeviceName', () => {
 - [ ] **Step 2: 실패 확인**
 
 ```bash
-export PATH="/c/Program Files/nodejs:$PATH" && cd "/d/EC LAB/ender" && npx vitest run src/lib/device.test.ts
+export PATH="/c/Users/tempadmin/nodejs:$PATH" && cd "/d/EC LAB/ender" && npx vitest run src/lib/device.test.ts
 ```
 
 Expected: FAIL.
@@ -932,7 +933,7 @@ export function setDeviceName(
 - [ ] **Step 4: 통과 확인**
 
 ```bash
-export PATH="/c/Program Files/nodejs:$PATH" && cd "/d/EC LAB/ender" && npx vitest run src/lib/device.test.ts
+export PATH="/c/Users/tempadmin/nodejs:$PATH" && cd "/d/EC LAB/ender" && npx vitest run src/lib/device.test.ts
 ```
 
 Expected: passed.
@@ -1106,7 +1107,7 @@ Expected: `.env` 와 `ignored OK` 출력.
 - [ ] **Step 6: 타입체크 후 커밋**
 
 ```bash
-export PATH="/c/Program Files/nodejs:$PATH" && cd "/d/EC LAB/ender" && npm run typecheck && git add supabase/migrations src/lib/supabase.ts src/lib/errors.ts && git status --short && git commit -m "feat: add database schema, RLS policies, storage bucket and supabase client
+export PATH="/c/Users/tempadmin/nodejs:$PATH" && cd "/d/EC LAB/ender" && npm run typecheck && git add supabase/migrations src/lib/supabase.ts src/lib/errors.ts && git status --short && git commit -m "feat: add database schema, RLS policies, storage bucket and supabase client
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
@@ -1425,7 +1426,7 @@ button:disabled { opacity: 0.6; cursor: default; }
 - [ ] **Step 6: 로컬 실행으로 수동 검증**
 
 ```bash
-export PATH="/c/Program Files/nodejs:$PATH" && cd "/d/EC LAB/ender" && npm run typecheck && (npm run dev > /tmp/ec-dev.log 2>&1 &) && sleep 4 && curl -s -o /dev/null -w "%{http_code}\n" http://localhost:5173/
+export PATH="/c/Users/tempadmin/nodejs:$PATH" && cd "/d/EC LAB/ender" && npm run typecheck && (npm run dev > /tmp/ec-dev.log 2>&1 &) && sleep 4 && curl -s -o /dev/null -w "%{http_code}\n" http://localhost:5173/
 ```
 
 Expected: `200`. 브라우저에서 http://localhost:5173 열어 확인 (사용자 또는 실행자):
@@ -1592,7 +1593,7 @@ describe('filterItems', () => {
 - [ ] **Step 2: 실패 확인**
 
 ```bash
-export PATH="/c/Program Files/nodejs:$PATH" && cd "/d/EC LAB/ender" && npx vitest run src/lib/itemsState.test.ts
+export PATH="/c/Users/tempadmin/nodejs:$PATH" && cd "/d/EC LAB/ender" && npx vitest run src/lib/itemsState.test.ts
 ```
 
 Expected: FAIL.
@@ -1805,7 +1806,7 @@ export async function cleanupExpired(): Promise<number> {
 - [ ] **Step 5: 통과 확인**
 
 ```bash
-export PATH="/c/Program Files/nodejs:$PATH" && cd "/d/EC LAB/ender" && npx vitest run src/lib/itemsState.test.ts && npm run typecheck
+export PATH="/c/Users/tempadmin/nodejs:$PATH" && cd "/d/EC LAB/ender" && npx vitest run src/lib/itemsState.test.ts && npm run typecheck
 ```
 
 Expected: 모두 passed, 타입 에러 0.
@@ -2126,7 +2127,7 @@ button.icon.danger:hover { color: var(--danger); }
 - [ ] **Step 6: 수동 검증 — 실시간 반영**
 
 ```bash
-export PATH="/c/Program Files/nodejs:$PATH" && cd "/d/EC LAB/ender" && npm run typecheck
+export PATH="/c/Users/tempadmin/nodejs:$PATH" && cd "/d/EC LAB/ender" && npm run typecheck
 ```
 
 브라우저 검증 (dev 서버가 Task 7에서 떠 있지 않으면 `npm run dev` 재실행):
@@ -2504,7 +2505,7 @@ export function ChestScreen({ session }: { session: Session }) {
 - [ ] **Step 7: 수동 검증**
 
 ```bash
-export PATH="/c/Program Files/nodejs:$PATH" && cd "/d/EC LAB/ender" && npm run check
+export PATH="/c/Users/tempadmin/nodejs:$PATH" && cd "/d/EC LAB/ender" && npm run check
 ```
 
 브라우저 (탭 두 개 열어두고):
@@ -2954,7 +2955,7 @@ export function ChestScreen({ session }: { session: Session }) {
 - [ ] **Step 6: 수동 검증**
 
 ```bash
-export PATH="/c/Program Files/nodejs:$PATH" && cd "/d/EC LAB/ender" && npm run check
+export PATH="/c/Users/tempadmin/nodejs:$PATH" && cd "/d/EC LAB/ender" && npm run check
 ```
 
 브라우저:
@@ -3002,7 +3003,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - [ ] **Step 2: 아이콘 생성 스크립트와 의존성**
 
 ```bash
-export PATH="/c/Program Files/nodejs:$PATH" && cd "/d/EC LAB/ender" && npm install -D @resvg/resvg-js@^2.6.2
+export PATH="/c/Users/tempadmin/nodejs:$PATH" && cd "/d/EC LAB/ender" && npm install -D @resvg/resvg-js@^2.6.2
 ```
 
 `scripts/make-icons.mjs`:
@@ -3028,7 +3029,7 @@ for (const [name, size] of targets) {
 ```
 
 ```bash
-export PATH="/c/Program Files/nodejs:$PATH" && cd "/d/EC LAB/ender" && npm run icons && ls -la public/icons
+export PATH="/c/Users/tempadmin/nodejs:$PATH" && cd "/d/EC LAB/ender" && npm run icons && ls -la public/icons
 ```
 
 Expected: 4개 PNG 생성. (maskable 은 SVG 배경이 전면을 채우므로 같은 렌더를 그대로 쓴다.)
@@ -3094,7 +3095,7 @@ registerSW({ immediate: true })
 - [ ] **Step 5: 빌드 검증**
 
 ```bash
-export PATH="/c/Program Files/nodejs:$PATH" && cd "/d/EC LAB/ender" && npm run check && ls dist | grep -E "manifest|sw.js|workbox" && (npm run preview -- --port 4173 > /tmp/ec-preview.log 2>&1 &) && sleep 3 && curl -s http://localhost:4173/manifest.webmanifest | head -c 300
+export PATH="/c/Users/tempadmin/nodejs:$PATH" && cd "/d/EC LAB/ender" && npm run check && ls dist | grep -E "manifest|sw.js|workbox" && (npm run preview -- --port 4173 > /tmp/ec-preview.log 2>&1 &) && sleep 3 && curl -s http://localhost:4173/manifest.webmanifest | head -c 300
 ```
 
 Expected: `dist/manifest.webmanifest`, `dist/sw.js`, `dist/workbox-*.js` 존재. manifest JSON 에 `"name":"Ender Chest"`.
@@ -3316,7 +3317,7 @@ describe('generateToken', () => {
 - [ ] **Step 2: 실패 확인**
 
 ```bash
-export PATH="/c/Program Files/nodejs:$PATH" && cd "/d/EC LAB/ender" && npx vitest run src/lib/tokens.test.ts
+export PATH="/c/Users/tempadmin/nodejs:$PATH" && cd "/d/EC LAB/ender" && npx vitest run src/lib/tokens.test.ts
 ```
 
 Expected: FAIL.
@@ -3387,7 +3388,7 @@ export async function revokeShareToken(id: string): Promise<void> {
 - [ ] **Step 4: 통과 확인**
 
 ```bash
-export PATH="/c/Program Files/nodejs:$PATH" && cd "/d/EC LAB/ender" && npx vitest run src/lib/tokens.test.ts
+export PATH="/c/Users/tempadmin/nodejs:$PATH" && cd "/d/EC LAB/ender" && npx vitest run src/lib/tokens.test.ts
 ```
 
 Expected: passed. (Node 22 는 `btoa`, `crypto.subtle` 전역 제공.)
@@ -3516,7 +3517,7 @@ code { font-family: var(--mono); font-size: 12px; background: var(--bg); padding
 - [ ] **Step 7: 검증 후 커밋**
 
 ```bash
-export PATH="/c/Program Files/nodejs:$PATH" && cd "/d/EC LAB/ender" && npm run check
+export PATH="/c/Users/tempadmin/nodejs:$PATH" && cd "/d/EC LAB/ender" && npm run check
 ```
 
 브라우저: ⚙ → "새 토큰" → `ec_...` 43자 표시, 복사 동작, 목록에 "미사용" 항목 추가. 대시보드 `share_tokens` 에 `token_hash` 64자 hex 만 저장되고 평문은 없다. "폐기" → 행 삭제.
@@ -3542,7 +3543,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - [ ] **Step 1: Supabase CLI 설치·초기화·로그인**
 
 ```bash
-export PATH="/c/Program Files/nodejs:$PATH" && cd "/d/EC LAB/ender" && npm install -D supabase@latest && npx supabase --version && npx supabase init --force
+export PATH="/c/Users/tempadmin/nodejs:$PATH" && cd "/d/EC LAB/ender" && npm install -D supabase@latest && npx supabase --version && npx supabase init --force
 ```
 
 Expected: 버전 출력, `supabase/config.toml` 생성. (`init` 이 VS Code 설정 생성 여부를 묻으면 `--with-vscode-settings` 없이 기본값. 프롬프트로 멈추면 `echo n | npx supabase init --force`.)
@@ -3553,7 +3554,7 @@ Expected: 버전 출력, `supabase/config.toml` 생성. (`init` 이 VS Code 설�
 ```
 그 다음 실행자가:
 ```bash
-export PATH="/c/Program Files/nodejs:$PATH" && cd "/d/EC LAB/ender" && npx supabase link --project-ref yimqpqnxebkypsjwfbbj
+export PATH="/c/Users/tempadmin/nodejs:$PATH" && cd "/d/EC LAB/ender" && npx supabase link --project-ref yimqpqnxebkypsjwfbbj
 ```
 DB 비밀번호를 물으면 사용자에게 받는다(프로젝트 생성 때 저장한 값). 비밀번호 입력 프롬프트가 안 뜨면 `-p <password>` 옵션.
 
@@ -3824,7 +3825,7 @@ Expected: 에러 0. Deno 설치를 건너뛰면 Step 5 배포 로그가 타입 �
 - [ ] **Step 5: 배포**
 
 ```bash
-export PATH="/c/Program Files/nodejs:$PATH" && cd "/d/EC LAB/ender" && npx supabase functions deploy share --no-verify-jwt --project-ref yimqpqnxebkypsjwfbbj
+export PATH="/c/Users/tempadmin/nodejs:$PATH" && cd "/d/EC LAB/ender" && npx supabase functions deploy share --no-verify-jwt --project-ref yimqpqnxebkypsjwfbbj
 ```
 
 Expected: `Deployed Functions on project yimqpqnxebkypsjwfbbj: share`. `--no-verify-jwt` 는 Authorization 헤더 대신 X-Share-Token 으로 인증하기 위해 필수.
@@ -3944,7 +3945,7 @@ JSON 본문에 `"expires_in": "1h" | "1d" | "7d" | "never"` 를 추가할 수 �
 - [ ] **Step 3: 최종 점검**
 
 ```bash
-export PATH="/c/Program Files/nodejs:$PATH" && cd "/d/EC LAB/ender" && npm run check && git check-ignore .env && ! grep -rn "service_role" src && git status --short
+export PATH="/c/Users/tempadmin/nodejs:$PATH" && cd "/d/EC LAB/ender" && npm run check && git check-ignore .env && ! grep -rn "service_role" src && git status --short
 ```
 
 Expected: check 통과, `.env` 무시, `src` 에 service_role 없음, 작업 트리 깨끗(커밋 전 변경만).
