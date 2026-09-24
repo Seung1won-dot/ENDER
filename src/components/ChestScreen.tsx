@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import {
   addFileItem,
@@ -56,8 +56,17 @@ export function ChestScreen({ session }: { session: Session }) {
   const [busy, setBusy] = useState(false)
   const [query, setQuery] = useState('')
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [, setDeviceTick] = useState(0)
   const thumbUrls = useThumbUrls(items)
+  const pending = useRef(0)
+
+  const beginWork = useCallback(() => {
+    pending.current += 1
+    setBusy(true)
+  }, [])
+  const endWork = useCallback(() => {
+    pending.current = Math.max(0, pending.current - 1)
+    if (pending.current === 0) setBusy(false)
+  }, [])
 
   useEffect(() => {
     void cleanupExpired()
@@ -69,23 +78,23 @@ export function ChestScreen({ session }: { session: Session }) {
 
   const submitText = useCallback(
     async (text: string) => {
-      setBusy(true)
+      beginWork()
       try {
         const row = await addTextItem({ text, source: getDeviceName(), expiresAt: computeExpiresAt(expiry) })
         upsertLocal(row)
       } catch (e) {
         toast.error(`넣지 못했어요: ${messageOf(e)}`)
       } finally {
-        setBusy(false)
+        endWork()
       }
     },
-    [expiry, upsertLocal],
+    [expiry, upsertLocal, beginWork, endWork],
   )
 
   const submitFiles = useCallback(
     (files: File[]) => {
       void (async () => {
-        setBusy(true)
+        beginWork()
         try {
           for (const file of files) {
             const problem = validateFile(file)
@@ -106,11 +115,11 @@ export function ChestScreen({ session }: { session: Session }) {
             }
           }
         } finally {
-          setBusy(false)
+          endWork()
         }
       })()
     },
-    [expiry, userId, upsertLocal],
+    [expiry, userId, upsertLocal, beginWork, endWork],
   )
 
   const pasteText = useCallback((text: string) => void submitText(text), [submitText])
@@ -199,7 +208,7 @@ export function ChestScreen({ session }: { session: Session }) {
         email={session.user.email ?? ''}
         expiry={expiry}
         onExpiryChange={setExpiry}
-        onDeviceChange={() => setDeviceTick((t) => t + 1)}
+        onDeviceChange={(name) => toast.info(`기기 이름: ${name}`)}
       />
     </main>
   )

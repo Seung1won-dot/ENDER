@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { getSignedUrl, type ItemRow } from '../lib/items'
 import { isImageMime } from '../lib/files'
 
-const REFRESH_MS = 50 * 60 * 1000 // 서명 URL 은 60분. 50분마다 갱신
+const REFRESH_MS = 50 * 60 * 1000 // 서명 URL 은 60분. 50분마다 갱신. 발급 실패한 경로도 같은 주기로 재시도
 
 export function useThumbUrls(items: ItemRow[]): Record<string, string | null> {
   const [urls, setUrls] = useState<Record<string, string | null>>({})
