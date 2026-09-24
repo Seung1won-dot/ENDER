@@ -117,3 +117,8 @@ button.icon.danger:hover { color: var(--danger); }
 .dialog h2 { margin: 0 0 4px; font-size: 18px; }
 .field { display: grid; gap: 6px; margin-top: 16px; font-size: 13px; color: var(--text-dim); }
 .field input, .field select { color: var(--text); }
+
+code { font-family: var(--mono); font-size: 12px; background: var(--bg); padding: 2px 6px; border-radius: 6px; overflow-wrap: anywhere; }
+.token-fresh { border: 1px solid var(--ok); border-radius: 10px; padding: 10px; display: grid; gap: 8px; }
+.token-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.token-list li { display: flex; justify-content: space-between; align-items: center; gap: 8px; color: var(--text); }
