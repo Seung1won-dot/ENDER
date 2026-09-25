@@ -33,7 +33,7 @@ const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 
 
 export function ChestScreen({ session }: { session: Session }) {
   const userId = session.user.id
-  const { items, loading, stale, error, status, reload, upsertLocal, removeLocal } = useItems(userId)
+  const { items, loading, stale, error, status, reload, upsertLocal, removeLocal, patchLocal } = useItems(userId)
   const online = useOnline()
   const [expiry, setExpiry] = useStoredExpiry()
   const [theme, setThemeState] = useState<Theme>(getTheme)
@@ -43,7 +43,7 @@ export function ChestScreen({ session }: { session: Session }) {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const thumbUrls = useThumbUrls(items)
   const pending = useRef(0)
-  const onAction = useItemActions({ upsertLocal, removeLocal, reload })
+  const onAction = useItemActions({ upsertLocal, removeLocal, patchLocal, reload })
   const freshIds = useArrivals(items, !stale)
   useCleanup(reload)
 
@@ -67,12 +67,12 @@ export function ChestScreen({ session }: { session: Session }) {
     setKind('all')
   }, [])
 
-  // 링크는 넣은 뒤 페이지 제목을 가져와 제목만 바꾼다 (실패해도 조용히).
+  // 링크는 넣은 뒤 페이지 제목을 가져와 현재 상태에 제목만 덧씌운다 (그 사이 고정·삭제한 것을 되돌리지 않음).
   const enrich = useCallback(
     (row: ItemRow) => {
-      void enrichLinkTitle(row).then((updated) => updated && upsertLocal(updated))
+      void enrichLinkTitle(row).then((r) => r && patchLocal(r.id, { title: r.title }))
     },
-    [upsertLocal],
+    [patchLocal],
   )
 
   const submitText = useCallback(

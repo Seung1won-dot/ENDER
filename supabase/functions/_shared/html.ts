@@ -48,22 +48,53 @@ export function isFetchableUrl(s: string): boolean {
   return true
 }
 
-/** 페이지 앞부분(최대 200KB)만 받아 제목을 뽑는다. 실패는 전부 null. */
+const MAX_REDIRECTS = 3
+const REQUEST_HEADERS = {
+  accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.1',
+  'user-agent': 'Mozilla/5.0 (compatible; EnderChest/1.0; +https://github.com/Seung1won-dot/ENDER)',
+}
+
+/** content-type 의 charset, 없으면 앞부분의 <meta charset>. 둘 다 없으면 utf-8. */
+export function detectCharset(contentType: string, head: Uint8Array): string {
+  const fromHeader = /charset=["']?([\w-]+)/i.exec(contentType)?.[1]
+  if (fromHeader) return fromHeader
+  const ascii = new TextDecoder('latin1').decode(head.subarray(0, 4096))
+  return /<meta[^>]+charset=["']?\s*([\w-]+)/i.exec(ascii)?.[1] ?? 'utf-8'
+}
+
+function makeDecoder(charset: string): TextDecoder {
+  try {
+    return new TextDecoder(charset, { fatal: false })
+  } catch {
+    return new TextDecoder('utf-8', { fatal: false })
+  }
+}
+
+/**
+ * 페이지 앞부분(최대 200KB)만 받아 제목을 뽑는다. 실패는 전부 null.
+ * 리다이렉트는 직접 따라가며 매 홉의 주소를 다시 검사한다 (안전한 주소 → 내부망 주소로 튕기는 것 방지).
+ */
 export async function fetchTitle(url: string, timeoutMs = 5000): Promise<string | null> {
-  if (!isFetchableUrl(url)) return null
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), timeoutMs)
   try {
-    const res = await fetch(url, {
-      signal: ctrl.signal,
-      redirect: 'follow',
-      headers: {
-        accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.1',
-        'user-agent': 'Mozilla/5.0 (compatible; EnderChest/1.0; +https://github.com/Seung1won-dot/ENDER)',
-      },
-    })
-    if (!res.ok || !res.body) return null
-    if (!/html|xml/i.test(res.headers.get('content-type') ?? '')) return null
+    let current = url
+    let res: Response | null = null
+    for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+      if (!isFetchableUrl(current)) return null
+      res = await fetch(current, { signal: ctrl.signal, redirect: 'manual', headers: REQUEST_HEADERS })
+      const location = res.headers.get('location')
+      if (res.status >= 300 && res.status < 400 && location) {
+        void res.body?.cancel().catch(() => undefined)
+        current = new URL(location, current).toString()
+        res = null
+        continue
+      }
+      break
+    }
+    if (!res || !res.ok || !res.body) return null
+    const contentType = res.headers.get('content-type') ?? ''
+    if (!/html|xml/i.test(contentType)) return null
 
     const reader = res.body.getReader()
     const chunks: Uint8Array[] = []
@@ -82,7 +113,7 @@ export async function fetchTitle(url: string, timeoutMs = 5000): Promise<string 
       buf.set(c, offset)
       offset += c.length
     }
-    return extractTitle(new TextDecoder('utf-8', { fatal: false }).decode(buf))
+    return extractTitle(makeDecoder(detectCharset(contentType, buf)).decode(buf))
   } catch {
     return null
   } finally {

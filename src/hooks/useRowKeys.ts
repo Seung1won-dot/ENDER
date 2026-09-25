@@ -26,6 +26,7 @@ export function useRowKeys(orderedIds: string[]) {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey || isTyping(e.target)) return
       if (orderedIds.length === 0) return
+      if (document.querySelector('dialog[open]')) return // 설정 창이 열려 있으면 목록 키는 쉰다
 
       const focusedLi = (document.activeElement as HTMLElement | null)?.closest<HTMLLIElement>('li.row') ?? null
       const currentId = focusedLi?.dataset.id ?? effectiveActive
@@ -46,7 +47,8 @@ export function useRowKeys(orderedIds: string[]) {
         focusRow(orderedIds[focusedLi ? Math.max(0, idx - 1) : Math.max(0, idx)])
         return
       }
-      if (!focusedLi) return
+      // 동작 키는 행 자체에 포커스가 있을 때만. 행 안의 버튼·링크에 있으면 그 요소의 Enter 가 따로 동작한다.
+      if (!focusedLi || document.activeElement !== focusedLi) return
 
       const press = (selector: string) => {
         const btn = focusedLi.querySelector<HTMLButtonElement>(selector)

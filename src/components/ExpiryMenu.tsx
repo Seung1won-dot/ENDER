@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import type { ExtendBy } from '../lib/expiry'
 import { Icon } from './Icon'
 
@@ -10,58 +10,76 @@ interface Props {
   onPick: (by: ExtendBy) => void
 }
 
-/** 남은 기간 표시 겸 연장 메뉴. 바깥 클릭이나 Esc 로 닫힌다. */
+const OPTIONS: ReadonlyArray<{ by: ExtendBy; label: string; icon: 'clock' | 'pin' }> = [
+  { by: '1d', label: '1일 연장', icon: 'clock' },
+  { by: '7d', label: '7일 연장', icon: 'clock' },
+  { by: 'never', label: '영구 보관', icon: 'pin' },
+]
+
+/** 남은 기간 표시 겸 연장 메뉴. 열리면 첫 항목에 포커스, ↑↓ 이동, Esc·바깥 클릭으로 닫히며 트리거로 돌아온다. */
 export function ExpiryMenu({ label, soon, onPick }: Props) {
   const [open, setOpen] = useState(false)
   const wrap = useRef<HTMLSpanElement>(null)
+  const trigger = useRef<HTMLButtonElement>(null)
+  const menu = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!open) return
+    menu.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus()
     const onDown = (e: MouseEvent) => {
       if (!wrap.current?.contains(e.target as Node)) setOpen(false)
     }
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
-    }
     document.addEventListener('mousedown', onDown)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onDown)
-      document.removeEventListener('keydown', onKey)
-    }
+    return () => document.removeEventListener('mousedown', onDown)
   }, [open])
 
-  const pick = (by: ExtendBy) => {
+  const close = () => {
     setOpen(false)
+    trigger.current?.focus()
+  }
+  const pick = (by: ExtendBy) => {
+    close()
     onPick(by)
+  }
+  function onMenuKey(e: KeyboardEvent<HTMLDivElement>) {
+    const items = Array.from(menu.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])
+    const i = items.indexOf(document.activeElement as HTMLElement)
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      items[(i + 1) % items.length]?.focus()
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      items[(i - 1 + items.length) % items.length]?.focus()
+    } else if (e.key === 'Escape' || e.key === 'Tab') {
+      e.preventDefault()
+      close()
+    }
   }
 
   return (
     <span className="meta-wrap" ref={wrap}>
       <button
+        ref={trigger}
         type="button"
         className={soon ? 'meta-btn meta-soon' : 'meta-btn'}
         title="만료 바꾸기 (x)"
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape' && open) close()
+        }}
       >
         {label}
       </button>
       {open && (
-        <div className="menu" role="menu" aria-label="만료 바꾸기">
-          <button type="button" role="menuitem" className="menu-item" onClick={() => pick('1d')}>
-            <Icon name="clock" size={14} />
-            1일 연장
-          </button>
-          <button type="button" role="menuitem" className="menu-item" onClick={() => pick('7d')}>
-            <Icon name="clock" size={14} />
-            7일 연장
-          </button>
-          <button type="button" role="menuitem" className="menu-item" onClick={() => pick('never')}>
-            <Icon name="pin" size={14} />
-            영구 보관
-          </button>
+        <div ref={menu} className="menu" role="menu" aria-label="만료 바꾸기" onKeyDown={onMenuKey}>
+          {OPTIONS.map((o) => (
+            <button key={o.by} type="button" role="menuitem" className="menu-item" onClick={() => pick(o.by)}>
+              <Icon name={o.icon} size={14} />
+              {o.label}
+            </button>
+          ))}
         </div>
       )}
     </span>

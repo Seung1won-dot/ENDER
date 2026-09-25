@@ -15,14 +15,20 @@ export async function fetchLinkTitle(url: string): Promise<string | null> {
   }
 }
 
-/** 링크 항목의 제목을 페이지 제목으로 바꾼다. 바뀐 행을 돌려주고, 바뀔 게 없으면 null. */
-export async function enrichLinkTitle(row: ItemRow): Promise<ItemRow | null> {
+/**
+ * 링크 항목의 제목을 페이지 제목으로 바꾼다. 바뀐 값만 돌려주고(행 스냅샷이 아니라), 바뀔 게 없으면 null.
+ * 호출한 쪽은 patchLocal(id, { title }) 로 현재 상태에 덧씌운다.
+ */
+export async function enrichLinkTitle(row: Pick<ItemRow, 'id' | 'kind' | 'content' | 'title'>): Promise<{
+  id: string
+  title: string
+} | null> {
   if (row.kind !== 'link' || !row.content) return null
   const title = await fetchLinkTitle(row.content)
   if (!title || title === row.title) return null
   try {
     await setTitle(row.id, title)
-    return { ...row, title }
+    return { id: row.id, title }
   } catch {
     return null
   }

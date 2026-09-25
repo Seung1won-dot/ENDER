@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { ITEMS_TABLE, listItems, type ItemRow } from '../lib/items'
 import { isExpired, mergeItem, withoutItem } from '../lib/itemsState'
 import { readItemsCache, writeItemsCache } from '../lib/cache'
+import { pendingDeletes } from '../lib/pendingDeletes'
 import { messageOf } from '../lib/errors'
 
 export type LiveStatus = 'connecting' | 'live' | 'offline'
@@ -30,7 +31,8 @@ export function useItems(userId: string) {
     try {
       do {
         again.current = false
-        setItems(await listItems())
+        const list = await listItems()
+        setItems(list.filter((i) => !pendingDeletes.has(i.id)))
       } while (again.current)
       setError(null)
       setStale(false)
@@ -42,8 +44,18 @@ export function useItems(userId: string) {
     }
   }, [])
 
-  const upsertLocal = useCallback((row: ItemRow) => setItems((prev) => mergeItem(prev, row)), [])
+  const upsertLocal = useCallback((row: ItemRow) => {
+    if (pendingDeletes.has(row.id)) return // 삭제 유예 중인 행은 Realtime 이 되살리지 않는다
+    setItems((prev) => mergeItem(prev, row))
+  }, [])
   const removeLocal = useCallback((id: string) => setItems((prev) => withoutItem(prev, id)), [])
+  /** 현재 상태의 행에 일부 값만 덧씌운다. 행이 이미 없으면(삭제됨) 아무것도 하지 않는다. */
+  const patchLocal = useCallback((id: string, patch: Partial<ItemRow>) => {
+    setItems((prev) => {
+      const cur = prev.find((x) => x.id === id)
+      return cur ? mergeItem(prev, { ...cur, ...patch }) : prev
+    })
+  }, [])
 
   // 서버에서 받은 뒤로는 바뀔 때마다 기기에 남긴다.
   useEffect(() => {
@@ -110,5 +122,5 @@ export function useItems(userId: string) {
     }
   }, [userId, reload, subscribe])
 
-  return { items, loading, stale, error, status, reload, removeLocal, upsertLocal }
+  return { items, loading, stale, error, status, reload, removeLocal, upsertLocal, patchLocal }
 }
