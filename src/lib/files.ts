@@ -57,6 +57,25 @@ export function validateFile(file: { name: string; size: number }): string | nul
   return null
 }
 
+/** 클립보드는 PNG 만 확실히 받으므로 다른 이미지 형식은 canvas 로 변환한다 (브라우저 전용). */
+export async function toPngBlob(blob: Blob): Promise<Blob> {
+  if (blob.type === 'image/png') return blob
+  const bitmap = await createImageBitmap(blob)
+  try {
+    const canvas = document.createElement('canvas')
+    canvas.width = bitmap.width
+    canvas.height = bitmap.height
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('이미지를 변환할 수 없어요')
+    ctx.drawImage(bitmap, 0, 0)
+    return await new Promise<Blob>((resolve, reject) =>
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('이미지를 변환할 수 없어요'))), 'image/png'),
+    )
+  } finally {
+    bitmap.close()
+  }
+}
+
 function pad2(n: number): string {
   return n < 10 ? `0${n}` : String(n)
 }

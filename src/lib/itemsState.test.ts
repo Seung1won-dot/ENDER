@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ItemRow } from './items'
-import { buildFilePath, buildTextPayload } from './items'
+import { buildFilePath, buildTextPayload, buildTextUpdate } from './items'
 import { countByKind, filterByKind, filterItems, isExpired, mergeItem, sortItems, withoutItem } from './itemsState'
 
 function row(over: Partial<ItemRow> & { id: string }): ItemRow {
@@ -44,6 +44,22 @@ describe('buildTextPayload', () => {
   })
   it('내용이 공백만이면 예외', () => {
     expect(() => buildTextPayload({ text: '   ', source: 'PC', expiresAt: null })).toThrow()
+  })
+})
+
+describe('buildTextUpdate', () => {
+  it('내용을 바꾸면 제목도 다시 만든다', () => {
+    expect(buildTextUpdate('수정된 첫 줄\n둘째 줄')).toEqual({ kind: 'text', title: '수정된 첫 줄', content: '수정된 첫 줄\n둘째 줄' })
+  })
+  it('URL 하나로 바꾸면 링크로 재분류', () => {
+    expect(buildTextUpdate(' https://github.com/a/b ')).toEqual({
+      kind: 'link',
+      title: 'github.com/a',
+      content: 'https://github.com/a/b',
+    })
+  })
+  it('빈 내용은 예외', () => {
+    expect(() => buildTextUpdate(' \n ')).toThrow()
   })
 })
 

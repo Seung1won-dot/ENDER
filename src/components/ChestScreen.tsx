@@ -1,23 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import {
-  addFileItem,
-  addTextItem,
-  cleanupExpired,
-  deleteItem,
-  getDownloadUrl,
-  getSignedUrl,
-  setPinned,
-  type ItemRow,
-} from '../lib/items'
+import { supabase } from '../lib/supabase'
+import { addFileItem, addTextItem, cleanupExpired } from '../lib/items'
 import { validateFile } from '../lib/files'
 import { computeExpiresAt } from '../lib/expiry'
 import { getDeviceName } from '../lib/device'
-import { isSafeHttpUrl } from '../lib/detect'
 import { messageOf } from '../lib/errors'
 import { toast } from '../lib/toast'
+import { clearItemsCache } from '../lib/cache'
 import { countByKind, filterByKind, filterItems, type KindFilter } from '../lib/itemsState'
 import { useItems, type LiveStatus } from '../hooks/useItems'
+import { useItemActions } from '../hooks/useItemActions'
+import { useOnline } from '../hooks/useOnline'
 import { useStoredExpiry } from '../hooks/useStoredExpiry'
 import { usePaste } from '../hooks/usePaste'
 import { useDropzone } from '../hooks/useDropzone'
@@ -29,9 +23,9 @@ import { SearchBar } from './SearchBar'
 import { FilterChips } from './FilterChips'
 import { SettingsDialog } from './SettingsDialog'
 import { Icon, Mark } from './Icon'
-import type { ItemAction } from './ItemRowView'
 
 const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
+const CLEANUP_EVERY_MS = 10 * 60 * 1000
 
 const STATUS_LABEL: Record<LiveStatus, string> = {
   connecting: '연결 중',
@@ -39,28 +33,10 @@ const STATUS_LABEL: Record<LiveStatus, string> = {
   offline: '오프라인',
 }
 
-async function shareItem(item: ItemRow): Promise<void> {
-  if (item.kind === 'file' && item.file_path) {
-    const url = await getSignedUrl(item.file_path)
-    const blob = await (await fetch(url)).blob()
-    const file = new File([blob], item.file_name ?? 'file', { type: item.mime_type ?? blob.type })
-    if (navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ files: [file], title: item.file_name ?? undefined })
-      return
-    }
-    await navigator.share({ title: item.file_name ?? undefined, url })
-    return
-  }
-  if (item.kind === 'link' && item.content) {
-    await navigator.share({ title: item.title ?? undefined, url: item.content })
-    return
-  }
-  await navigator.share({ text: item.content ?? '' })
-}
-
 export function ChestScreen({ session }: { session: Session }) {
   const userId = session.user.id
-  const { items, loading, status, reload, upsertLocal, removeLocal } = useItems(userId)
+  const { items, loading, stale, error, status, reload, upsertLocal, removeLocal } = useItems(userId)
+  const online = useOnline()
   const [expiry, setExpiry] = useStoredExpiry()
   const [busy, setBusy] = useState(false)
   const [query, setQuery] = useState('')
@@ -68,11 +44,12 @@ export function ChestScreen({ session }: { session: Session }) {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const thumbUrls = useThumbUrls(items)
   const pending = useRef(0)
+  const onAction = useItemActions({ upsertLocal, removeLocal, reload })
 
-  // 첫 화면에 있던 항목은 그냥 두고, 그 뒤에 나타난 항목만 "도착" 연출 대상으로 기억한다.
+  // 서버에서 처음 받은 목록은 그냥 두고, 그 뒤에 나타난 항목만 "도착" 연출 대상으로 기억한다.
   const seen = useRef<Set<string> | null>(null)
   const fresh = useRef(new Set<string>())
-  if (!loading) {
+  if (!stale) {
     if (seen.current === null) {
       seen.current = new Set(items.map((i) => i.id))
     } else {
@@ -94,16 +71,29 @@ export function ChestScreen({ session }: { session: Session }) {
     if (pending.current === 0) setBusy(false)
   }, [])
 
+  // 만료 정리: 처음 열 때, 그리고 탭으로 돌아올 때(10분에 한 번까지만).
+  const lastCleanup = useRef(0)
   useEffect(() => {
-    void cleanupExpired()
-      .then((n) => (n > 0 ? reload() : undefined))
-      .catch((e) => console.warn('cleanupExpired', messageOf(e)))
+    const run = () => {
+      if (Date.now() - lastCleanup.current < CLEANUP_EVERY_MS) return
+      lastCleanup.current = Date.now()
+      void cleanupExpired()
+        .then((n) => (n > 0 ? reload() : undefined))
+        .catch((e) => console.warn('cleanupExpired', messageOf(e)))
+    }
+    run()
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') run()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
   }, [reload])
 
   const searched = useMemo(() => filterItems(items, query), [items, query])
   const counts = useMemo(() => countByKind(searched), [searched])
   const visible = useMemo(() => filterByKind(searched, kind), [searched, kind])
   const filtered = query.trim() !== '' || kind !== 'all'
+  const usedBytes = useMemo(() => items.reduce((sum, i) => sum + (i.file_size ?? 0), 0), [items])
 
   const clearFilters = useCallback(() => {
     setQuery('')
@@ -160,54 +150,12 @@ export function ChestScreen({ session }: { session: Session }) {
   usePaste(pasteText, submitFiles)
   const dragging = useDropzone(submitFiles)
 
-  const onAction = useCallback(
-    (action: ItemAction, item: ItemRow) => {
-      void (async () => {
-        try {
-          switch (action) {
-            case 'copy':
-              await navigator.clipboard.writeText(item.content ?? '')
-              toast.info('복사했어요')
-              break
-            case 'open':
-              if (item.content && isSafeHttpUrl(item.content)) {
-                window.open(item.content, '_blank', 'noopener,noreferrer')
-              }
-              break
-            case 'download': {
-              if (!item.file_path) return
-              const url = await getDownloadUrl(item.file_path, item.file_name ?? 'file')
-              const a = document.createElement('a')
-              a.href = url
-              a.download = item.file_name ?? 'file'
-              a.rel = 'noopener'
-              document.body.appendChild(a)
-              a.click()
-              a.remove()
-              break
-            }
-            case 'share':
-              await shareItem(item)
-              break
-            case 'pin':
-              upsertLocal({ ...item, pinned: !item.pinned })
-              await setPinned(item.id, !item.pinned)
-              break
-            case 'delete':
-              if (!window.confirm('이 항목을 삭제할까요?')) return
-              removeLocal(item.id)
-              await deleteItem(item)
-              break
-          }
-        } catch (e) {
-          if (e instanceof DOMException && e.name === 'AbortError') return
-          toast.error(messageOf(e))
-          void reload()
-        }
-      })()
-    },
-    [upsertLocal, removeLocal, reload],
-  )
+  const logout = useCallback(() => {
+    clearItemsCache()
+    void supabase.auth.signOut()
+  }, [])
+
+  const shownStatus: LiveStatus = online ? status : 'offline'
 
   return (
     <>
@@ -217,9 +165,9 @@ export function ChestScreen({ session }: { session: Session }) {
             <Mark size={22} />
             <h1 className="brand-name">Ender Chest</h1>
           </div>
-          <span className={`status status-${status}`} title={STATUS_LABEL[status]} role="status">
+          <span className={`status status-${shownStatus}`} title={STATUS_LABEL[shownStatus]} role="status">
             <span className="status-dot" />
-            <span className="status-label">{STATUS_LABEL[status]}</span>
+            <span className="status-label">{STATUS_LABEL[shownStatus]}</span>
           </span>
           <span className="spacer" />
           <SearchBar value={query} onChange={setQuery} />
@@ -240,15 +188,35 @@ export function ChestScreen({ session }: { session: Session }) {
 
         <FilterChips value={kind} counts={counts} onChange={setKind} />
 
+        {items.length > 0 && !online && (
+          <div className="banner" role="status">
+            <Icon name="offline" size={16} />
+            오프라인이에요. 마지막으로 본 목록을 보여 줘요.
+          </div>
+        )}
+        {items.length > 0 && online && error && (
+          <div className="banner banner-error" role="alert">
+            <Icon name="alert" size={16} />
+            목록을 새로 불러오지 못했어요.
+            <button type="button" className="btn btn-ghost" onClick={() => void reload()}>
+              <Icon name="refresh" size={14} />
+              다시 시도
+            </button>
+          </div>
+        )}
+
         <ItemList
           items={visible}
           loading={loading}
+          error={error}
+          online={online}
           filtered={filtered}
           canShare={canShare}
           thumbUrls={thumbUrls}
           freshIds={fresh.current}
           onAction={onAction}
           onClearFilters={clearFilters}
+          onRetry={() => void reload()}
         />
       </main>
 
@@ -260,6 +228,8 @@ export function ChestScreen({ session }: { session: Session }) {
         expiry={expiry}
         onExpiryChange={setExpiry}
         onDeviceChange={(name) => toast.info(`기기 이름: ${name}`)}
+        onLogout={logout}
+        usedBytes={usedBytes}
       />
     </>
   )

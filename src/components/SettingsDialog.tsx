@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { supabase } from '../lib/supabase'
 import { getDeviceName, setDeviceName } from '../lib/device'
 import type { ExpiryPreset } from '../lib/expiry'
+import { formatSize } from '../lib/files'
 import { ExpirySegment } from './ExpirySegment'
 import { TokenSection } from './TokenSection'
 import { Icon } from './Icon'
+
+const FREE_STORAGE_BYTES = 1024 * 1024 * 1024 // Supabase 무료 티어 Storage 1GB
 
 interface Props {
   open: boolean
@@ -13,11 +15,15 @@ interface Props {
   expiry: ExpiryPreset
   onExpiryChange: (p: ExpiryPreset) => void
   onDeviceChange: (name: string) => void
+  onLogout: () => void
+  /** 파일 항목 크기 합계 */
+  usedBytes: number
 }
 
-export function SettingsDialog({ open, onClose, email, expiry, onExpiryChange, onDeviceChange }: Props) {
+export function SettingsDialog({ open, onClose, email, expiry, onExpiryChange, onDeviceChange, onLogout, usedBytes }: Props) {
   const ref = useRef<HTMLDialogElement>(null)
   const [device, setDevice] = useState(getDeviceName())
+  const usedPct = Math.min(100, Math.round((usedBytes / FREE_STORAGE_BYTES) * 100))
 
   useEffect(() => {
     const d = ref.current
@@ -69,11 +75,23 @@ export function SettingsDialog({ open, onClose, email, expiry, onExpiryChange, o
       </section>
 
       <section className="dialog-section">
+        <div className="field">
+          <span className="field-label">파일 용량</span>
+          <div className="meter" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={usedPct} aria-label="파일 용량">
+            <div className="meter-fill" style={{ width: `${usedPct}%` }} />
+          </div>
+          <span className="field-help">
+            <span className="mono">{formatSize(usedBytes)}</span> / 1 GB (Supabase 무료 한도). 만료된 파일은 앱을 열 때 정리돼요.
+          </span>
+        </div>
+      </section>
+
+      <section className="dialog-section">
         <TokenSection open={open} />
       </section>
 
       <div className="dialog-foot">
-        <button type="button" className="btn btn-ghost" onClick={() => void supabase.auth.signOut()}>
+        <button type="button" className="btn btn-ghost" onClick={onLogout}>
           <Icon name="logout" size={16} />
           로그아웃
         </button>
