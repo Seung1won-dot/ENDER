@@ -1,5 +1,7 @@
+import { useMemo } from 'react'
 import type { ItemRow } from '../lib/items'
 import { PASTE_KEY } from '../lib/keys'
+import { useRowKeys } from '../hooks/useRowKeys'
 import { ItemRowView, type ActionExtra, type ItemAction } from './ItemRowView'
 import { Icon, Mark } from './Icon'
 
@@ -106,11 +108,13 @@ function EmptyState({
 
 export function ItemList(props: Props) {
   const { items, loading, canShare, thumbUrls, freshIds, onAction } = props
+  const pinned = useMemo(() => items.filter((i) => i.pinned), [items])
+  const rest = useMemo(() => items.filter((i) => !i.pinned), [items])
+  const orderedIds = useMemo(() => [...pinned, ...rest].map((i) => i.id), [pinned, rest])
+  const { activeId, setActiveId, registerRow } = useRowKeys(orderedIds)
+
   if (loading) return <Skeleton />
   if (items.length === 0) return <EmptyState {...props} />
-
-  const pinned = items.filter((i) => i.pinned)
-  const rest = items.filter((i) => !i.pinned)
 
   const renderGroup = (label: string | null, list: ItemRow[]) => {
     if (list.length === 0) return null
@@ -125,6 +129,9 @@ export function ItemList(props: Props) {
               canShare={canShare}
               thumbUrl={item.file_path ? thumbUrls[item.file_path] : null}
               isNew={freshIds.has(item.id)}
+              tabIndex={item.id === activeId ? 0 : -1}
+              registerRow={registerRow}
+              onFocusRow={setActiveId}
               onAction={onAction}
             />
           ))}

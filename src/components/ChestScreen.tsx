@@ -1,43 +1,42 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
-import { addFileItem, addTextItem, cleanupExpired } from '../lib/items'
+import { addFileItem, addTextItem, type ItemRow } from '../lib/items'
 import { validateFile } from '../lib/files'
 import { computeExpiresAt } from '../lib/expiry'
 import { getDeviceName } from '../lib/device'
 import { messageOf } from '../lib/errors'
 import { toast } from '../lib/toast'
 import { clearItemsCache } from '../lib/cache'
+import { enrichLinkTitle } from '../lib/preview'
+import { getTheme, setTheme, type Theme } from '../lib/theme'
 import { countByKind, filterByKind, filterItems, type KindFilter } from '../lib/itemsState'
 import { useItems, type LiveStatus } from '../hooks/useItems'
+import { markLogout } from '../hooks/useSession'
 import { useItemActions } from '../hooks/useItemActions'
+import { useArrivals } from '../hooks/useArrivals'
+import { useCleanup } from '../hooks/useCleanup'
 import { useOnline } from '../hooks/useOnline'
 import { useStoredExpiry } from '../hooks/useStoredExpiry'
 import { usePaste } from '../hooks/usePaste'
 import { useDropzone } from '../hooks/useDropzone'
 import { useThumbUrls } from '../hooks/useSignedUrl'
+import { TopBar } from './TopBar'
 import { ItemList } from './ItemList'
 import { Composer } from './Composer'
 import { DropOverlay } from './DropOverlay'
-import { SearchBar } from './SearchBar'
 import { FilterChips } from './FilterChips'
 import { SettingsDialog } from './SettingsDialog'
-import { Icon, Mark } from './Icon'
+import { Icon } from './Icon'
 
 const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
-const CLEANUP_EVERY_MS = 10 * 60 * 1000
-
-const STATUS_LABEL: Record<LiveStatus, string> = {
-  connecting: '연결 중',
-  live: '실시간',
-  offline: '오프라인',
-}
 
 export function ChestScreen({ session }: { session: Session }) {
   const userId = session.user.id
   const { items, loading, stale, error, status, reload, upsertLocal, removeLocal } = useItems(userId)
   const online = useOnline()
   const [expiry, setExpiry] = useStoredExpiry()
+  const [theme, setThemeState] = useState<Theme>(getTheme)
   const [busy, setBusy] = useState(false)
   const [query, setQuery] = useState('')
   const [kind, setKind] = useState<KindFilter>('all')
@@ -45,22 +44,8 @@ export function ChestScreen({ session }: { session: Session }) {
   const thumbUrls = useThumbUrls(items)
   const pending = useRef(0)
   const onAction = useItemActions({ upsertLocal, removeLocal, reload })
-
-  // 서버에서 처음 받은 목록은 그냥 두고, 그 뒤에 나타난 항목만 "도착" 연출 대상으로 기억한다.
-  const seen = useRef<Set<string> | null>(null)
-  const fresh = useRef(new Set<string>())
-  if (!stale) {
-    if (seen.current === null) {
-      seen.current = new Set(items.map((i) => i.id))
-    } else {
-      for (const it of items) {
-        if (!seen.current.has(it.id)) {
-          seen.current.add(it.id)
-          fresh.current.add(it.id)
-        }
-      }
-    }
-  }
+  const freshIds = useArrivals(items, !stale)
+  useCleanup(reload)
 
   const beginWork = useCallback(() => {
     pending.current += 1
@@ -70,24 +55,6 @@ export function ChestScreen({ session }: { session: Session }) {
     pending.current = Math.max(0, pending.current - 1)
     if (pending.current === 0) setBusy(false)
   }, [])
-
-  // 만료 정리: 처음 열 때, 그리고 탭으로 돌아올 때(10분에 한 번까지만).
-  const lastCleanup = useRef(0)
-  useEffect(() => {
-    const run = () => {
-      if (Date.now() - lastCleanup.current < CLEANUP_EVERY_MS) return
-      lastCleanup.current = Date.now()
-      void cleanupExpired()
-        .then((n) => (n > 0 ? reload() : undefined))
-        .catch((e) => console.warn('cleanupExpired', messageOf(e)))
-    }
-    run()
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') run()
-    }
-    document.addEventListener('visibilitychange', onVisible)
-    return () => document.removeEventListener('visibilitychange', onVisible)
-  }, [reload])
 
   const searched = useMemo(() => filterItems(items, query), [items, query])
   const counts = useMemo(() => countByKind(searched), [searched])
@@ -100,19 +67,28 @@ export function ChestScreen({ session }: { session: Session }) {
     setKind('all')
   }, [])
 
+  // 링크는 넣은 뒤 페이지 제목을 가져와 제목만 바꾼다 (실패해도 조용히).
+  const enrich = useCallback(
+    (row: ItemRow) => {
+      void enrichLinkTitle(row).then((updated) => updated && upsertLocal(updated))
+    },
+    [upsertLocal],
+  )
+
   const submitText = useCallback(
     async (text: string) => {
       beginWork()
       try {
         const row = await addTextItem({ text, source: getDeviceName(), expiresAt: computeExpiresAt(expiry) })
         upsertLocal(row)
+        if (row.kind === 'link') enrich(row)
       } catch (e) {
         toast.error(`넣지 못했어요: ${messageOf(e)}`)
       } finally {
         endWork()
       }
     },
-    [expiry, upsertLocal, beginWork, endWork],
+    [expiry, upsertLocal, enrich, beginWork, endWork],
   )
 
   const submitFiles = useCallback(
@@ -150,7 +126,13 @@ export function ChestScreen({ session }: { session: Session }) {
   usePaste(pasteText, submitFiles)
   const dragging = useDropzone(submitFiles)
 
+  const changeTheme = useCallback((t: Theme) => {
+    setTheme(t)
+    setThemeState(t)
+  }, [])
+
   const logout = useCallback(() => {
+    markLogout()
     clearItemsCache()
     void supabase.auth.signOut()
   }, [])
@@ -159,23 +141,7 @@ export function ChestScreen({ session }: { session: Session }) {
 
   return (
     <>
-      <header className="topbar">
-        <div className="topbar-inner">
-          <div className="brand">
-            <Mark size={22} />
-            <h1 className="brand-name">Ender Chest</h1>
-          </div>
-          <span className={`status status-${shownStatus}`} title={STATUS_LABEL[shownStatus]} role="status">
-            <span className="status-dot" />
-            <span className="status-label">{STATUS_LABEL[shownStatus]}</span>
-          </span>
-          <span className="spacer" />
-          <SearchBar value={query} onChange={setQuery} />
-          <button className="icon-btn" title="설정" aria-label="설정" onClick={() => setSettingsOpen(true)}>
-            <Icon name="sliders" size={18} />
-          </button>
-        </div>
-      </header>
+      <TopBar status={shownStatus} query={query} onQueryChange={setQuery} onOpenSettings={() => setSettingsOpen(true)} />
 
       <main className="screen">
         <Composer
@@ -213,7 +179,7 @@ export function ChestScreen({ session }: { session: Session }) {
           filtered={filtered}
           canShare={canShare}
           thumbUrls={thumbUrls}
-          freshIds={fresh.current}
+          freshIds={freshIds}
           onAction={onAction}
           onClearFilters={clearFilters}
           onRetry={() => void reload()}
@@ -228,6 +194,8 @@ export function ChestScreen({ session }: { session: Session }) {
         expiry={expiry}
         onExpiryChange={setExpiry}
         onDeviceChange={(name) => toast.info(`기기 이름: ${name}`)}
+        theme={theme}
+        onThemeChange={changeTheme}
         onLogout={logout}
         usedBytes={usedBytes}
       />

@@ -256,13 +256,40 @@ components:
 - 비어 있음: 큰 상자 마크(48px, 흐린 잉크) + "상자가 비어 있어요" + 넣는 방법 세 줄(아이콘 + 문장 + kbd). 가르치는 빈 화면.
 - 로딩: 행 모양 스켈레톤 3개(이음선 색 막대, 1.2초 흐름). 가운데 스피너 없음.
 
+### Menu (만료 연장)
+- 메타 줄의 남은 기간은 점선 밑줄 버튼(`.meta-btn`). 누르면 바로 아래에 작은 메뉴: 솟은 흑요석, 1px 이음선, 8px, Floating 그림자, 항목은 아이콘 + 글자 13px, hover 배경 hover 색. 바깥 클릭·Esc 로 닫힌다.
+
+### Banner (오프라인 · 오류)
+- 칩 아래, 목록 위. 솟은 흑요석, 1px 이음선, 8px, 패딩 8px 12px, 13px 흐린 잉크. 아이콘은 잉걸(오프라인) 또는 장미(오류). 오류 배너는 오른쪽에 "다시 시도" Ghost 버튼. 한 번에 하나만 보인다.
+
+### Row Editor (텍스트 편집)
+- 본문 자리에 눌린 흑요석 textarea(최소 80px)와 그 아래 저장(Primary)·취소(Ghost)·단축키 힌트(12px 흐린 잉크). 다른 행은 그대로.
+
+### Code Text
+- 코드처럼 보이는 텍스트(두 줄 이상, 대부분의 줄에 괄호·대입·명령어)는 Plex Mono 13px, 눌린 흑요석 배경, 1px 이음선, 8px, 패딩 8px 10px, 가로 스크롤. 12줄까지 보이고 "펼치기".
+
+### Keyboard Focus (행)
+- 활성 행 하나만 Tab 순서에 들어간다. `:focus-visible` 이면 청록 2px 안쪽 외곽선 + hover 배경. j/k 로 옮기고 c·Enter·e·d·p·x 가 행의 버튼을 대신 누른다. 버튼 툴팁에 단축키를 괄호로 적는다.
+
+### Favicon
+- https 링크는 종류 슬롯에 사이트 파비콘(16px, 4px 모서리)을 시도하고, 못 받으면 링크 아이콘 그대로.
+
+### Toast with action
+- 토스트 오른쪽에 청록 글자 버튼 하나("되돌리기"). 배경 없음, hover 시 청록 12%. 삭제 유예 5초와 표시 시간이 같다.
+
+### Meter (파일 용량)
+- 6px 높이 pill 트랙(눌린 흑요석 + 1px 이음선) 위에 청록 채움. 아래에 "168.4 MB / 1 GB" 를 Data 글꼴로.
+
+### Theme Segment
+- 설정의 자동/다크/라이트 세그먼트는 만료 세그먼트와 같은 부품에 13px 아이콘(모니터·달·해)을 앞에 붙인 것. 라이트 고정은 `:root[data-theme='light']`, 다크 고정은 `data-theme='dark'` 가 시스템 라이트를 덮는다.
+
 ### Signature: 상자 마크
 - 24px 상단바 마크와 512px 앱 아이콘이 같은 도형: 둥근 사각 몸체(솟은 흑요석, 굵은 이음선 테두리), 뚜껑 선, 가운데 청록 눈. 청록이 화면에 처음 등장하는 자리다.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** 모든 색을 `:root` 토큰으로 정의하고, 라이트 모드는 `prefers-color-scheme: light` 에서 토큰만 바꾼다.
+- **Do** 모든 색을 `:root` 토큰으로 정의하고, 라이트 모드는 `prefers-color-scheme: light` 와 `:root[data-theme='light']` 두 곳에서 같은 토큰 값을 쓴다(둘은 항상 같게 유지).
 - **Do** 아이콘은 `src/components/Icon.tsx` 의 SVG 만 쓴다(24 viewBox, 1.75 stroke, round cap). 새 아이콘도 같은 굵기로 그린다.
 - **Do** 상태 전부를 갖춘다: hover, focus-visible, active, disabled, loading(스켈레톤), empty, error(토스트).
 - **Do** 브라우저 기본 표면도 팔레트로 맞춘다: `::selection`, `caret-color`, `accent-color`, 스크롤바, 포커스 링, 밑줄 오프셋.
