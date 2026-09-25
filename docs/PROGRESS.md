@@ -1,6 +1,6 @@
 # Ender Chest — 진행 상황과 인수인계
 
-기준일: 2026-09-25 (1일차 종료)
+기준일: 2026-09-25 (2일차 종료. 2일차 내용은 §6)
 브랜치: `feat/v1` (구현), `main` (문서만, 아직 병합 전)
 저장소: https://github.com/Seung1won-dot/ENDER
 
@@ -41,17 +41,17 @@
 - 텍스트 넣기 ✅
 - 탭 두 개 실시간 반영 ✅ (Phase 1 완료 조건)
 
-## 2. 아직 안 한 것 (내일 순서대로)
+## 2. 아직 안 한 것 (순서대로)
 
-1. **Task 16 리뷰** 및 **전체 브랜치 최종 리뷰** → 남은 지적 사항 한 번에 수정. 이미 정해진 수정 2건: Edge Function 의 `last_used_at` 갱신을 토큰 검증 직후로 이동(일부 실패 시에도 사용 기록 남기기), `expires_in` 누락 시 앱과 같은 **7일** 기본값 적용(`rules.ts computeExpiresAt`).
-2. **`main` 병합 + 태그 `v0.1.0` + push.** (Vercel은 `main`을 배포함)
-3. **Vercel 배포 (사용자 계정 필요)**: vercel.com → GitHub 로그인 → `ENDER` Import → 환경변수 `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (아래 값) → Deploy → 주소 받기.
-4. Supabase → Authentication → URL Configuration 에 Vercel 주소(Site URL, Redirect `https://xxx.vercel.app/**`) 추가.
-5. 맥미니·아이폰에서 접속 확인. 아이폰은 Safari → 홈 화면에 추가.
-6. **아이폰 단축어** 제작 (README "iOS 단축어" 절). 토큰은 앱 ⚙ → 새 토큰.
-7. **종류 필터 칩** (전체·텍스트·링크·이미지·파일) 추가 여부 결정 → 추가하면 작은 Task 하나 (클라이언트 필터, DB 변경 없음).
-8. 남은 수동 검증: 이미지 Ctrl+V 썸네일, 파일 드래그·다운로드, 링크 열기, 복사, 공유(아이폰), 고정, 검색 `/`, 만료 표시·정리, 설정 기기 이름, PWA 설치.
-9. 2주 실사용 시작.
+1. **Edge Function `share` 재배포.** 2일차에 `index.ts`·`rules.ts` 가 바뀌었는데 배포는 아직 (개인 액세스 토큰 필요, §3 명령).
+2. **Vercel 배포 (사용자 계정 필요)**: vercel.com → GitHub 로그인 → `ENDER` Import → 환경변수 `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (아래 값) → Deploy → 주소 받기.
+3. Supabase → Authentication → URL Configuration 에 Vercel 주소(Site URL, Redirect `https://xxx.vercel.app/**`) 추가.
+4. 맥미니·아이폰에서 접속 확인. 아이폰은 Safari → 홈 화면에 추가.
+5. **아이폰 단축어** 제작 (README "iOS 단축어" 절). 토큰은 앱 설정(상단 오른쪽 아이콘) → 새 토큰.
+6. 남은 수동 검증: 이미지 Ctrl+V 썸네일, 파일 드래그·다운로드, 링크 열기, 복사, 공유(아이폰), 고정, 검색 `/`, 만료 표시·정리, 설정 기기 이름, PWA 설치. 새 화면도 같이: 다크/라이트 자동 전환, 종류 필터 칩, 긴 텍스트 펼치기, 설정 창 위에 토스트, 다른 기기에서 넣은 항목이 내려오며 나타나는지.
+7. 2주 실사용 시작.
+
+Task 16 리뷰, 최종 리뷰 수정, 종류 필터 칩, `main` 병합·태그 `v0.1.0`·push 는 2일차에 완료 (§6).
 
 ## 3. 내일 시작할 때
 
@@ -106,3 +106,25 @@ Claude Code 로 이어서 할 때: 이 문서와 `.superpowers/sdd/2026-09-25-en
 - maskable 아이콘이 일반 아이콘과 동일 렌더(모서리 잘릴 수 있음).
 - `npm audit` 경고 6건 (전이 의존성).
 - 공개 저장소임. 비밀값은 없음. 원하면 Private 으로 전환.
+
+## 6. 2일차 (2026-09-25 오후) 진행
+
+### 최종 리뷰와 수정
+- Task 16 리뷰 통과. 전체 브랜치 최종 리뷰(읽기 전용 서브에이전트) 결과 필수 2건 + 권장 5건을 반영:
+  - Edge Function: `last_used_at` 갱신을 토큰 검증 직후로 이동, `expires_in` 누락 시 7일(앱과 동일, `never` 만 영구), `X-Source` 40자·제목 80자 상한.
+  - `useItems.reload` 재조회 병합(진행 중이면 끝난 뒤 한 번 더 조회), `errors.ts` 는 `Object.hasOwn`, 링크 "열기" 도 `isSafeHttpUrl` 검사, 설정 창을 열 때마다 토큰 목록 갱신 + 닫으면 새 토큰 표시 제거, 토큰 복사는 클립보드 결과를 기다린 뒤 토스트.
+- §5 의 나머지 항목은 v2 로 보류.
+
+### 디자인 패스 ("흑요석 상자")
+- 기준 파일 `PRODUCT.md`(제품 사실), `DESIGN.md`(색·글꼴·구성 토큰과 규칙)를 먼저 쓰고 화면을 고쳤다. 방향은 사용자가 "흑요석 + 엔더 청록"(다크 기본, 라이트 자동)을 선택.
+- 글꼴 IBM Plex Sans KR + IBM Plex Mono (Google Fonts, 서비스워커가 캐시). 강조색은 엔더 청록 하나.
+- 이모지 → SVG 아이콘 한 벌(`src/components/Icon.tsx`). 앱 아이콘도 같은 마크로 교체(`public/icon.svg` → `npm run icons`).
+- 카드 → 가로선으로 나눈 행 목록(`ItemRowView.tsx`). 고정됨/최근 그룹, 긴 텍스트 8줄 클램프 + 펼치기, 다른 기기에서 도착한 행은 220ms 동안 내려오며 나타남.
+- 종류 필터 칩(전체·텍스트·링크·이미지·파일, 개수 표시, 검색과 함께 적용). 순수 함수 `filterByKind`·`countByKind` + 테스트 4개.
+- 만료 선택은 세그먼트(`ExpirySegment.tsx`), 토스트는 popover 로 띄워 설정 창 위에도 보임, 로딩 스켈레톤, 가르치는 빈 화면, 필터 결과 없음 상태.
+- 검사: `npm run check` 통과(테스트 78개). `npx --yes impeccable@latest detect src index.html` 지적 0건. 헤드리스 크롬으로 정적 프리뷰 스크린샷(1280 다크/라이트, 390·360 모바일) 확인.
+- DESIGN-GUIDE 5항목: 시스템 글꼴 없음 / 보라·파랑 그라데이션 없음 / 카드 안 카드 없음 / 색 배경 위 회색 본문 없음 / 바운스 없음.
+- 참고: impeccable·design-taste 스킬은 상위 폴더 `D:\EC LAB\.claude` 에 설치돼 있어 이 프로젝트에서는 `/impeccable` 명령이 안 뜬다. 이 프로젝트에서 쓰려면 `ender` 폴더에서 DESIGN-GUIDE.md 의 설치 명령을 다시 실행.
+
+### 병합
+- `feat/v1` → `main` fast-forward, 태그 `v0.1.0`, push.

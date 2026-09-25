@@ -2,6 +2,7 @@ import { useSession } from './hooks/useSession'
 import { AuthScreen } from './components/AuthScreen'
 import { ChestScreen } from './components/ChestScreen'
 import { ToastHost } from './components/ToastHost'
+import { Mark } from './components/Icon'
 
 export function App() {
   const session = useSession()
@@ -9,9 +10,9 @@ export function App() {
   return (
     <>
       {session === undefined ? (
-        <main className="screen">
-          <p className="dim">불러오는 중…</p>
-        </main>
+        <div className="boot" role="status" aria-label="불러오는 중">
+          <Mark size={32} />
+        </div>
       ) : session ? (
         <ChestScreen session={session} />
       ) : (

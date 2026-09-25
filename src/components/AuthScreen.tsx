@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import { messageOf } from '../lib/errors'
 import { toast } from '../lib/toast'
+import { Mark } from './Icon'
 
 type Mode = 'login' | 'signup'
 
@@ -53,23 +54,20 @@ export function AuthScreen() {
   }
 
   return (
-    <main className="screen auth">
-      <h1>📦 Ender Chest</h1>
-      <p className="dim">어디서 열어도 같은 내용물이 보이는 나만의 상자</p>
+    <main className="auth">
+      <div className="auth-brand">
+        <Mark size={44} />
+        <h1>Ender Chest</h1>
+      </div>
+      <p className="auth-tag">어디서 열어도 같은 내용물이 보이는 나만의 상자</p>
 
       <form onSubmit={submit} className="auth-form">
-        <label>
-          이메일
-          <input
-            type="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+        <label className="field">
+          <span className="field-label">이메일</span>
+          <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
         </label>
-        <label>
-          비밀번호
+        <label className="field">
+          <span className="field-label">비밀번호</span>
           <input
             type="password"
             autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
@@ -79,28 +77,28 @@ export function AuthScreen() {
             onChange={(e) => setPassword(e.target.value)}
           />
         </label>
-        <button type="submit" className="primary" disabled={busy}>
+        <button type="submit" className="btn btn-primary" disabled={busy}>
           {mode === 'login' ? '로그인' : '가입하기'}
         </button>
-        <button type="button" className="ghost" disabled={busy} onClick={magicLink}>
+        <button type="button" className="btn btn-ghost" disabled={busy} onClick={magicLink}>
           비밀번호 없이 메일 링크로 로그인
         </button>
       </form>
 
       {notice && <p className="notice">{notice}</p>}
 
-      <p className="dim">
+      <p className="auth-switch">
         {mode === 'login' ? (
           <>
             계정이 없나요?{' '}
-            <button type="button" className="link" onClick={() => setMode('signup')}>
+            <button type="button" className="btn-link" onClick={() => setMode('signup')}>
               가입
             </button>
           </>
         ) : (
           <>
             이미 계정이 있나요?{' '}
-            <button type="button" className="link" onClick={() => setMode('login')}>
+            <button type="button" className="btn-link" onClick={() => setMode('login')}>
               로그인
             </button>
           </>

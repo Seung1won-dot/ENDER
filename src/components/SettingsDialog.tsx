@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { getDeviceName, setDeviceName } from '../lib/device'
-import { EXPIRY_PRESETS, type ExpiryPreset } from '../lib/expiry'
+import type { ExpiryPreset } from '../lib/expiry'
+import { ExpirySegment } from './ExpirySegment'
 import { TokenSection } from './TokenSection'
+import { Icon } from './Icon'
 
 interface Props {
   open: boolean
@@ -32,43 +34,50 @@ export function SettingsDialog({ open, onClose, email, expiry, onExpiryChange, o
   }
 
   return (
-    <dialog ref={ref} className="dialog" onClose={onClose}>
-      <h2>설정</h2>
-      <p className="dim small">{email}</p>
+    <dialog ref={ref} className="dialog" onClose={onClose} aria-labelledby="settings-title">
+      <div className="dialog-head">
+        <h2 className="dialog-title" id="settings-title">
+          설정
+        </h2>
+        <button type="button" className="icon-btn" title="닫기" aria-label="닫기" onClick={onClose}>
+          <Icon name="close" size={18} />
+        </button>
+      </div>
+      <p className="dialog-sub">{email}</p>
 
-      <label className="field">
-        이 기기 이름
-        <div className="row">
+      <section className="dialog-section">
+        <label className="field">
+          <span className="field-label">이 기기 이름</span>
           <input
             type="text"
             value={device}
             placeholder="예: 연구실 PC, 맥미니"
             onChange={(e) => setDevice(e.target.value)}
             onBlur={saveDevice}
-            onKeyDown={(e) => e.key === 'Enter' && saveDevice()}
+            onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
           />
+          <span className="field-help">항목에 "어느 기기에서 넣었는지" 로 표시돼요.</span>
+        </label>
+      </section>
+
+      <section className="dialog-section">
+        <div className="field">
+          <span className="field-label">기본 만료</span>
+          <ExpirySegment name="settings-expiry" value={expiry} onChange={onExpiryChange} label="기본 만료" showLabel={false} />
+          <span className="field-help">입력창의 만료 선택에도 이 값이 기본으로 들어가요.</span>
         </div>
-        <span className="dim small">아이템에 "어느 기기에서 넣었는지" 로 표시돼요.</span>
-      </label>
+      </section>
 
-      <label className="field">
-        기본 만료
-        <select value={expiry} onChange={(e) => onExpiryChange(e.target.value as ExpiryPreset)}>
-          {EXPIRY_PRESETS.map((p) => (
-            <option key={p.value} value={p.value}>
-              {p.label}
-            </option>
-          ))}
-        </select>
-      </label>
+      <section className="dialog-section">
+        <TokenSection open={open} />
+      </section>
 
-      <TokenSection />
-
-      <div className="row end">
-        <button className="ghost" onClick={() => void supabase.auth.signOut()}>
+      <div className="dialog-foot">
+        <button type="button" className="btn btn-ghost" onClick={() => void supabase.auth.signOut()}>
+          <Icon name="logout" size={16} />
           로그아웃
         </button>
-        <button className="primary" onClick={onClose}>
+        <button type="button" className="btn btn-primary" onClick={onClose}>
           닫기
         </button>
       </div>
