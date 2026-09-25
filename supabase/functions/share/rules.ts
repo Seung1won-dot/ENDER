@@ -54,10 +54,10 @@ export function sanitizeFileName(name: string): string {
   return /[A-Za-z0-9]/.test(trimmed) ? trimmed : 'file'
 }
 
+/** 'never' 만 영구. 누락·미지원 값은 앱의 DEFAULT_EXPIRY 와 같은 7일. */
 export function computeExpiresAt(preset: string | null | undefined, now = new Date()): string | null {
-  if (!preset || preset === 'never') return null
-  const ms = PRESET_MS[preset]
-  if (ms === undefined) return new Date(now.getTime() + PRESET_MS['7d']).toISOString()
+  if (preset === 'never') return null
+  const ms = PRESET_MS[preset ?? ''] ?? PRESET_MS['7d']
   return new Date(now.getTime() + ms).toISOString()
 }
 

@@ -13,12 +13,21 @@ export function useItems(userId: string) {
   const [loading, setLoading] = useState(true)
   const [status, setStatus] = useState<LiveStatus>('connecting')
   const reloading = useRef(false)
+  const again = useRef(false)
 
+  // 재조회 중에 또 요청이 오면 버리지 않고 끝난 뒤 한 번 더 돈다.
+  // (첫 조회와 구독 시작 사이에 다른 기기가 넣은 항목을 놓치지 않기 위해)
   const reload = useCallback(async () => {
-    if (reloading.current) return
+    if (reloading.current) {
+      again.current = true
+      return
+    }
     reloading.current = true
     try {
-      setItems(await listItems())
+      do {
+        again.current = false
+        setItems(await listItems())
+      } while (again.current)
     } catch (e) {
       toast.error(`목록을 불러오지 못했어요: ${messageOf(e)}`)
     } finally {
