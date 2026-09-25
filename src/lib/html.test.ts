@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest'
-import { extractTitle, isFetchableUrl } from '../../supabase/functions/_shared/html'
+import { detectCharset, extractTitle, isFetchableUrl } from '../../supabase/functions/_shared/html'
+
+describe('detectCharset', () => {
+  const enc = (s: string) => new TextEncoder().encode(s)
+  it('헤더의 charset 우선', () => {
+    expect(detectCharset('text/html; charset=EUC-KR', enc('<meta charset="utf-8">'))).toBe('EUC-KR')
+  })
+  it('없으면 meta charset', () => {
+    expect(detectCharset('text/html', enc('<html><head><meta charset="euc-kr"></head>'))).toBe('euc-kr')
+    expect(detectCharset('text/html', enc('<meta http-equiv="Content-Type" content="text/html; charset=utf-8">'))).toBe('utf-8')
+  })
+  it('둘 다 없으면 utf-8', () => {
+    expect(detectCharset('text/html', enc('<title>x</title>'))).toBe('utf-8')
+  })
+})
 
 describe('extractTitle', () => {
   it('og:title 을 title 보다 우선', () => {

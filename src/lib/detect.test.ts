@@ -15,6 +15,7 @@ describe('looksLikeCode', () => {
     expect(looksLikeCode('내일 세미나 발표 순서: 1) 구성 2) 백업')).toBe(false)
     expect(looksLikeCode('ls -la')).toBe(false)
     expect(looksLikeCode('회의실 예약 오후 2시.\n프로젝터 챙기기.')).toBe(false)
+    expect(looksLikeCode('  - 사과\n  - 배\n  - 감')).toBe(false)
     expect(looksLikeCode('')).toBe(false)
   })
 })

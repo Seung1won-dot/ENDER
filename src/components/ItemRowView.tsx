@@ -75,6 +75,7 @@ export function ItemRowView({
   const [editing, setEditing] = useState(false)
   const [faviconOk, setFaviconOk] = useState(false)
   const textRef = useRef<HTMLDivElement>(null)
+  const liRef = useRef<HTMLLIElement | null>(null)
 
   // 8줄을 넘는지 측정. 글꼴이 늦게 로드되거나 창 폭이 바뀌면 다시 잰다.
   useEffect(() => {
@@ -89,8 +90,13 @@ export function ItemRowView({
     return () => ro.disconnect()
   }, [item.content, expanded, editing])
 
-  function saveEdit(text: string) {
+  // 편집이 끝나면 포커스를 행으로 돌려 키보드 흐름(e → Esc → j)이 끊기지 않게 한다.
+  function endEdit() {
     setEditing(false)
+    requestAnimationFrame(() => liRef.current?.focus())
+  }
+  function saveEdit(text: string) {
+    endEdit()
     if (text !== (item.content ?? '').trim()) onAction('edit', item, { text })
   }
 
@@ -105,7 +111,10 @@ export function ItemRowView({
       className={cls}
       data-id={item.id}
       tabIndex={tabIndex}
-      ref={(el) => registerRow?.(item.id, el)}
+      ref={(el) => {
+        liRef.current = el
+        registerRow?.(item.id, el)
+      }}
       onFocus={(e) => {
         if (e.target === e.currentTarget) onFocusRow?.(item.id)
       }}
@@ -130,7 +139,7 @@ export function ItemRowView({
 
       <div className="row-body">
         {item.kind === 'text' && editing && (
-          <RowEditor id={item.id} initial={item.content ?? ''} onSave={saveEdit} onCancel={() => setEditing(false)} />
+          <RowEditor id={item.id} initial={item.content ?? ''} onSave={saveEdit} onCancel={endEdit} />
         )}
 
         {item.kind === 'text' && !editing && (

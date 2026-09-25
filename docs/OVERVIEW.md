@@ -18,9 +18,9 @@
 
 ## 2. 현재 상태 (한눈에)
 
-- 코드: v1 기능 전부 구현, 최종 리뷰 반영, 디자인 전면 교체, `main` 병합 + `v0.1.0` 태그 + push 완료.
-- 검사: `npm run check` 통과 (타입체크 + 단위 테스트 78개 + 빌드), `impeccable detect` 지적 0건.
-- 인프라: Supabase 프로젝트 `yimqpqnxebkypsjwfbbj` 에 스키마·RLS·Storage·Realtime 적용 완료. Edge Function `share` 배포됨(단, 2일차 수정분은 재배포 전).
+- 코드: v1 기능 전부 구현, 최종 리뷰 반영, 디자인 전면 교체(`v0.1.0` 태그), 그 뒤 v0.2~v0.4 로드맵 기능을 `feat/v1` 에 추가(§9 표). 스키마 변경 없음.
+- 검사: `npm run check` 통과 (타입체크 + 단위 테스트 99개 + 빌드), `impeccable detect` 지적 0건.
+- 인프라: Supabase 프로젝트 `yimqpqnxebkypsjwfbbj` 에 스키마·RLS·Storage·Realtime 적용 완료. Edge Function `share` 는 1일차 판이 배포돼 있고 2일차 수정분(요약·제목·만료 기본값)과 새 함수 `preview` 는 **배포 전**.
 - 배포: **Vercel 미배포.** 지금은 로컬(`npm run dev`, http://localhost:5173)에서만 실행.
 - 검증: 가입, 텍스트 넣기, 탭 두 개 실시간 반영은 확인. 나머지 수동 검증은 §9.
 
@@ -34,15 +34,22 @@
 - 만료: 1시간 / 1일 / 7일 / 영구, 기본 7일. 마지막 선택을 기억.
 
 **꺼내기·관리**
-- 실시간 목록 (다른 기기에서 넣으면 1초 안에 반영, 새로 도착한 행은 살짝 내려오며 나타남).
-- 복사 · 새 탭에서 열기 · 다운로드 · 다른 앱으로 공유(Web Share) · 고정 · 삭제.
+- 실시간 목록 (다른 기기에서 넣으면 1초 안에 반영, 새로 도착한 행은 살짝 내려오며 나타남). 탭이 숨겨진 동안 도착한 개수는 탭 제목 "(2) Ender Chest".
+- 복사(이미지는 클립보드에 PNG) · 새 탭에서 열기 · 다운로드 · 다른 앱으로 공유(Web Share) · 고정 · 삭제(5초 안에 되돌리기) · 텍스트 인라인 편집.
 - 검색(`/` 단축키, 제목·본문·파일명) + 종류 필터 칩(전체·텍스트·링크·이미지·파일, 개수 표시).
-- 이미지 썸네일(서명 URL, 50분마다 갱신). 긴 텍스트는 8줄까지 보이고 "펼치기".
-- 항목마다 출처 기기 이름 · 시각 · 남은 기간 표시. 1시간 미만이면 경고색.
-- 만료된 항목은 앱을 열 때 정리(파일 삭제 → 행 삭제).
+- 키보드 탐색: `j`/`k` 이동, `c` 복사, `Enter` 열기·다운로드, `e` 편집, `d` 삭제, `p` 고정, `x` 만료 메뉴.
+- 링크는 페이지 제목(Edge Function `preview`)과 사이트 파비콘 표시. 코드처럼 보이는 텍스트는 모노 글꼴 상자.
+- 이미지 썸네일(서명 URL, 50분마다 갱신). 긴 텍스트는 8줄(코드는 12줄)까지 보이고 "펼치기".
+- 항목마다 출처 기기 이름 · 시각 · 남은 기간 표시. 남은 기간을 누르면 1일·7일 연장 또는 영구 보관. 1시간 미만이면 경고색.
+- 만료된 항목은 앱을 열 때와 탭으로 돌아올 때(10분 간격) 정리(파일 삭제 → 행 삭제).
+- 오프라인이거나 조회에 실패하면 기기에 남긴 마지막 목록을 보여 주고 배너로 알린다. 절전 복귀 때 Realtime 채널이 끊겨 있으면 다시 구독.
+- 입력 중 내용은 탭 세션에 보존(새로고침·자동 업데이트에도 유지). 세션이 만료되면 안내하고 로그인 화면으로.
 
 **설정**
-- 이 기기 이름(출처 표시용), 기본 만료, 단축어 토큰 발급·목록·폐기, 로그아웃.
+- 이 기기 이름(출처 표시용), 화면 테마(자동/다크/라이트), 기본 만료, 파일 용량(무료 1GB 대비), 단축어 토큰 발급·목록·폐기, 로그아웃.
+
+**아이폰**
+- 단축어 응답 `summary`("링크 1개 넣었어요")를 알림에 표시. 입력창의 "붙여넣기" 버튼으로 클립보드의 글·이미지를 바로 넣기. 뒷면 탭 자동화 레시피는 README.
 
 **계정**
 - 이메일 + 비밀번호 기본, 메일 링크(매직링크) 보조. 가입은 이메일 확인 없이 바로.
@@ -125,40 +132,54 @@ src/
   styles/global.css        디자인 토큰과 전역 스타일
   components/
     AuthScreen.tsx         로그인·가입
-    ChestScreen.tsx        상자 화면 (상단바, 동작 처리, 필터, 다이얼로그)
-    Composer.tsx           입력 표면
+    ChestScreen.tsx        상자 화면 (상태 조합, 넣기, 필터, 배너, 다이얼로그)
+    TopBar.tsx             상단바 (마크·연결 상태·검색·설정)
+    Composer.tsx           입력 표면 (초안 보존, 폰용 붙여넣기 버튼)
     ExpirySegment.tsx      만료 선택 세그먼트
     FilterChips.tsx        종류 필터 칩
-    ItemList.tsx           목록·스켈레톤·빈 화면
-    ItemRowView.tsx        항목 한 줄 (종류별 렌더 + 동작 버튼)
+    ItemList.tsx           목록·스켈레톤·빈/오류/오프라인 상태
+    ItemRowView.tsx        항목 한 줄 (종류별 렌더, 파비콘, 코드 표시)
+    RowActions.tsx         항목 동작 버튼 (data-action)
+    RowEditor.tsx          텍스트 인라인 편집
+    ExpiryMenu.tsx         남은 기간 + 연장 메뉴
     SearchBar.tsx          검색 (`/`)
-    SettingsDialog.tsx     설정 창
+    SettingsDialog.tsx     설정 창 (기기 이름, 테마, 기본 만료, 용량, 토큰)
     TokenSection.tsx       단축어 토큰 관리
-    ToastHost.tsx          토스트 (popover)
+    ToastHost.tsx          토스트 (popover, 되돌리기 버튼)
     DropOverlay.tsx        드래그 중 오버레이
     Icon.tsx               SVG 아이콘 + 상자 마크
   hooks/
-    useSession.ts          Supabase 세션
-    useItems.ts            목록 조회 + Realtime 구독 + 재조회
+    useSession.ts          Supabase 세션, 만료 안내
+    useItems.ts            목록 조회 + 캐시 + Realtime 구독/재구독
+    useItemActions.ts      복사·열기·다운로드·공유·고정·삭제(되돌리기)·연장·편집
+    useRowKeys.ts          키보드 탐색 (j/k, c, Enter, e, d, p, x)
+    useArrivals.ts         도착 연출 대상 + 탭 제목 개수
+    useCleanup.ts          만료 정리 (열 때·탭 복귀)
+    useOnline.ts           온라인 여부
     usePaste.ts            Ctrl+V 텍스트·이미지
     useDropzone.ts         드래그&드롭
     useSignedUrl.ts        썸네일 서명 URL
     useStoredExpiry.ts     만료 선택 기억
   lib/                     순수 로직 (vitest)
-    detect.ts              링크 감지, 제목
-    files.ts               파일명 정리, 차단 확장자, 크기 표시
-    expiry.ts              만료 계산·표시
+    detect.ts              링크 감지, 제목, 코드 판별
+    files.ts               파일명 정리, 차단 확장자, 크기 표시, PNG 변환
+    expiry.ts              만료 계산·표시·연장
     device.ts              기기 이름
     itemsState.ts          정렬·병합·검색·종류 필터
+    cache.ts               마지막 목록 기기 캐시
     items.ts               items 테이블·Storage 데이터 계층
+    preview.ts             링크 제목 가져오기 (Edge Function 호출)
+    theme.ts               화면 테마 저장·적용
     tokens.ts              토큰 생성(해시)·목록·폐기
     errors.ts              Supabase 에러 한국어 변환
     toast.ts, keys.ts, supabase.ts
 supabase/
   migrations/0001_init.sql     테이블, RLS, Realtime
   migrations/0002_storage.sql  버킷, Storage 정책
-  functions/share/index.ts     아이폰 단축어용 Edge Function
+  functions/_shared/html.ts    페이지 제목 추출·주소 검사 (두 함수 공용, vitest 로 검증)
+  functions/share/index.ts     아이폰 단축어용 Edge Function (요약·링크 제목 포함)
   functions/share/rules.ts     src/lib 규칙의 Deno 복제 (같이 고칠 것)
+  functions/preview/index.ts   링크 제목 가져오기 (JWT 검증 켜고 배포)
 ```
 
 ## 7. 개발과 검사
@@ -202,12 +223,12 @@ npx --yes impeccable@latest detect src index.html   # 디자인 검사
 
 | 버전 | 범위 | 비고 |
 |---|---|---|
-| v0.1.x 배포 | Edge Function 재배포 → Vercel 배포 → Supabase URL 설정 → 아이폰 단축어 → 실기기 검증 | 지금 여기. 사용자 계정·토큰 필요 |
-| v0.2 매일 부딪히는 것 | 삭제 되돌리기(확인창 대신 "삭제됨 · 되돌리기" 5초 토스트, 목록에서 먼저 빼고 5초 뒤 실제 삭제) · 이미지 클립보드 복사(`ClipboardItem`, PNG 아니면 canvas 로 변환) · 만료 연장(남은 기간을 누르면 +7일 / 영구) · 텍스트 인라인 편집(더블클릭 → 수정 → Enter, `items.updated_at` 열 추가, Realtime UPDATE 는 이미 처리됨) · 빈 상태/오류/오프라인 분리(오프라인이면 마지막 목록을 캐시에서 표시) | 실사용 1주 안에 필요해지는 것 |
-| v0.2.x 아이폰 | Edge Function 응답에 `summary` 문장("링크 1개 넣었어요") 추가해 단축어 알림에 표시(401/400 문장은 이미 한국어) · 단축어를 iCloud 링크로 배포 · 폰에서 꺼내기 동선(이미지 저장, 파일 앱 저장, 텍스트 복사) 실기기 확인 · 뒷면 탭/자동화로 "클립보드 → 상자" 단축어 | 단축어 만든 뒤 |
-| v0.3 PC 힘 기능 | 숨긴 탭에서 새 항목 개수(탭 제목 "(2) Ender Chest") · 키보드 탐색(j/k 이동, c 복사, Enter 열기, d 삭제, p 고정, Esc) · 코드처럼 보이는 텍스트 모노 표시 · 링크 제목·파비콘(Edge Function `og-preview` + `items.preview` jsonb, pg_net 트리거로 자동 호출) · 파일을 브라우저 밖으로 드래그해 저장(`DownloadURL`) | 2주 사용 후 |
-| v0.4 견고함 | 만료 정리를 서버로(pg_cron 은 행만 지울 수 있으니 Storage 파일은 삭제 큐 테이블 + Edge Function) · 입력 초안 sessionStorage 보존(배포 자동 새로고침·탭 실수 닫기 대비) · Realtime 재구독(지금은 절전 복귀 시 재조회만 하고 끊긴 채널을 다시 구독하지 않음) · 설정에 Storage 용량 표시(무료 1GB) · 세션 만료 시 로그인 화면 + 초안 보존 | 안정화 |
-| 그 다음 | 다른 스크립트·크론이 curl 로 상자에 넣기(토큰만 있으면 지금도 가능) · 맥 메뉴바 앱(클립보드 → 상자 글로벌 단축키) · 브라우저 확장(우클릭 → 상자에 넣기) · tsvector 검색 · Android 가 생기면 share_target(매니페스트 10줄) | 관심 생기면 |
+| v0.1.x 배포 | Edge Function 두 개(`share`, `preview`) 배포 → Vercel 배포 → Supabase URL 설정 → 아이폰 단축어 → 실기기 검증 | **지금 여기.** 사용자 계정·토큰 필요 |
+| v0.2 매일 부딪히는 것 | 삭제 되돌리기 · 이미지 클립보드 복사 · 만료 연장 메뉴 · 텍스트 인라인 편집 · 빈/오류/오프라인 상태 분리 + 마지막 목록 캐시 | **완료** (2일차 후반, 스키마 변경 없이) |
+| v0.2.x 아이폰 | Edge Function 응답 `summary` · 입력창 "붙여넣기" 버튼 · 뒷면 탭 자동화·폰에서 꺼내기 레시피(README) | **코드 완료.** 단축어 iCloud 링크 배포와 실기기 확인은 사용자 |
+| v0.3 PC 힘 기능 | 숨긴 탭 새 항목 개수 · 키보드 탐색 · 코드 모노 표시 · 링크 제목(`preview` 함수, 제목 열 재사용)·파비콘 | **완료.** 파일을 브라우저 밖으로 드래그(`DownloadURL`)는 Chrome 전용이라 뺌 |
+| v0.4 견고함 | 입력 초안 보존 · Realtime 재구독 · 파일 용량 표시 · 세션 만료 안내 · 만료 정리를 탭 복귀 때도 | **완료.** 서버측 만료 정리(pg_cron + 삭제 큐)는 인프라 설정이 필요해 보류 |
+| 그 다음 | 다른 스크립트·크론이 curl 로 상자에 넣기(토큰만 있으면 지금도 가능) · 맥 메뉴바 앱(클립보드 → 상자 글로벌 단축키) · 브라우저 확장(우클릭 → 상자에 넣기) · tsvector 검색 · Android 가 생기면 share_target(매니페스트 10줄) · 서버측 만료 정리 | 관심 생기면 |
 
 Claude Code 에 시킬 때는 이 문서와 `docs/PROGRESS.md` 를 먼저 읽게 한 뒤 "v0.2 범위: … 기능마다 계획 3줄 → 구현 → `npm run check` → 깨질 수 있는 상황 3개 점검, 기능 하나 끝날 때마다 멈춰서 보고" 처럼 범위와 순서만 준다. 작업 규칙은 `CLAUDE.md` 에 있다.
 

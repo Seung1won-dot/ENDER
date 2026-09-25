@@ -14,6 +14,7 @@ import { isImageMime, toPngBlob } from '../lib/files'
 import { extendExpiresAt } from '../lib/expiry'
 import { isSafeHttpUrl } from '../lib/detect'
 import { enrichLinkTitle } from '../lib/preview'
+import { pendingDeletes } from '../lib/pendingDeletes'
 import { messageOf } from '../lib/errors'
 import { toast } from '../lib/toast'
 import type { ActionExtra, ItemAction } from '../components/ItemRowView'
@@ -23,6 +24,7 @@ export const UNDO_MS = 5000
 interface Deps {
   upsertLocal: (row: ItemRow) => void
   removeLocal: (id: string) => void
+  patchLocal: (id: string, patch: Partial<ItemRow>) => void
   reload: () => Promise<void>
 }
 
@@ -69,38 +71,44 @@ function download(url: string, name: string): void {
 }
 
 /** 항목 한 줄의 동작들. 삭제는 5초 유예 후 실제로 지우고 그 사이 되돌릴 수 있다. */
-export function useItemActions({ upsertLocal, removeLocal, reload }: Deps) {
-  const pendingDeletes = useRef(new Map<string, number>())
+export function useItemActions({ upsertLocal, removeLocal, patchLocal, reload }: Deps) {
+  const timers = useRef(new Map<string, number>())
 
   // 화면을 떠나면(로그아웃 등) 유예 중인 삭제는 취소한다. 지워지지 않는 쪽이 안전하다.
   useEffect(() => {
-    const pending = pendingDeletes.current
+    const pending = timers.current
     return () => {
-      pending.forEach((t) => window.clearTimeout(t))
+      pending.forEach((t, id) => {
+        window.clearTimeout(t)
+        pendingDeletes.delete(id)
+      })
       pending.clear()
     }
   }, [])
 
   const scheduleDelete = useCallback(
     (item: ItemRow) => {
-      const prev = pendingDeletes.current.get(item.id)
+      const prev = timers.current.get(item.id)
       if (prev !== undefined) window.clearTimeout(prev)
+      pendingDeletes.add(item.id)
       removeLocal(item.id)
       const timer = window.setTimeout(() => {
-        pendingDeletes.current.delete(item.id)
+        timers.current.delete(item.id)
+        pendingDeletes.delete(item.id)
         deleteItem(item).catch((e) => {
           toast.error(`삭제하지 못했어요: ${messageOf(e)}`)
           upsertLocal(item)
         })
       }, UNDO_MS)
-      pendingDeletes.current.set(item.id, timer)
+      timers.current.set(item.id, timer)
       toast.action(
         '삭제했어요',
         {
           label: '되돌리기',
           onClick: () => {
             window.clearTimeout(timer)
-            pendingDeletes.current.delete(item.id)
+            timers.current.delete(item.id)
+            pendingDeletes.delete(item.id)
             upsertLocal(item)
           },
         },
@@ -138,7 +146,7 @@ export function useItemActions({ upsertLocal, removeLocal, reload }: Deps) {
               await shareItem(item)
               break
             case 'pin':
-              upsertLocal({ ...item, pinned: !item.pinned })
+              patchLocal(item.id, { pinned: !item.pinned })
               await setPinned(item.id, !item.pinned)
               break
             case 'delete':
@@ -147,18 +155,18 @@ export function useItemActions({ upsertLocal, removeLocal, reload }: Deps) {
             case 'extend': {
               if (!extra?.by) return
               const next = extendExpiresAt(item.expires_at, extra.by)
-              upsertLocal({ ...item, expires_at: next })
+              patchLocal(item.id, { expires_at: next })
               await setExpiresAt(item.id, next)
               toast.info(next === null ? '영구 보관으로 바꿨어요' : '만료를 연장했어요')
               break
             }
             case 'edit': {
               if (!extra?.text) return
-              upsertLocal({ ...item, ...buildTextUpdate(extra.text) })
+              patchLocal(item.id, buildTextUpdate(extra.text))
               const row = await updateTextItem(item.id, extra.text)
-              upsertLocal(row)
-              // 편집으로 링크가 됐으면 페이지 제목도 가져온다
-              if (row.kind === 'link') void enrichLinkTitle(row).then((u) => u && upsertLocal(u))
+              patchLocal(row.id, row)
+              // 편집으로 링크가 됐으면 페이지 제목도 가져온다 (현재 상태에 제목만 덧씌움)
+              if (row.kind === 'link') void enrichLinkTitle(row).then((r) => r && patchLocal(r.id, { title: r.title }))
               break
             }
           }
@@ -169,6 +177,6 @@ export function useItemActions({ upsertLocal, removeLocal, reload }: Deps) {
         }
       })()
     },
-    [upsertLocal, reload, scheduleDelete],
+    [patchLocal, reload, scheduleDelete],
   )
 }

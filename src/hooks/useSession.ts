@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { toast } from '../lib/toast'
+import { clearItemsCache } from '../lib/cache'
 
 let explicitLogout = false
 
@@ -21,7 +22,8 @@ export function useSession(): Session | null | undefined {
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s)
       if (event === 'SIGNED_OUT') {
-        // 토큰 갱신 실패 등으로 세션이 끊긴 경우. 입력 중이던 내용은 세션 저장소에 남아 있다.
+        // 어떤 이유로든 세션이 끝나면 기기에 남긴 목록 사본은 지운다. 입력 중이던 초안은 세션 저장소에 남는다.
+        clearItemsCache()
         if (!explicitLogout) toast.info('로그인이 만료됐어요. 다시 로그인해 주세요.')
         explicitLogout = false
       }

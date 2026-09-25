@@ -111,17 +111,23 @@ Deno.serve(async (req) => {
   const inserted: string[] = []
   const counts = { text: 0, link: 0, file: 0 }
 
-  for (const text of incoming.texts) {
-    const p = buildTextPayload(text)
-    // 링크는 페이지 제목을 3초 안에 가져와 보고, 안 되면 호스트/경로 제목을 쓴다.
-    const custom = incoming.title?.trim()
-    const title = custom || (p.kind === 'link' ? (await fetchTitle(p.content, 3000)) ?? p.title : p.title)
+  // 링크는 페이지 제목을 3초 안에 가져와 보고(여러 개면 동시에), 안 되면 호스트/경로 제목을 쓴다.
+  const custom = incoming.title?.trim()
+  const payloads = await Promise.all(
+    incoming.texts.map(async (text) => {
+      const p = buildTextPayload(text)
+      const title = custom || (p.kind === 'link' ? (await fetchTitle(p.content, 3000)) ?? p.title : p.title)
+      return { ...p, title: title.slice(0, 80) }
+    }),
+  )
+
+  for (const p of payloads) {
     const { data, error } = await admin
       .from('items')
       .insert({
         user_id: tok.user_id,
         kind: p.kind,
-        title: title.slice(0, 80),
+        title: p.title,
         content: p.content,
         source,
         expires_at: expiresAt,
