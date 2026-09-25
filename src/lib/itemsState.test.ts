@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ItemRow } from './items'
 import { buildFilePath, buildTextPayload } from './items'
-import { filterItems, isExpired, mergeItem, sortItems, withoutItem } from './itemsState'
+import { countByKind, filterByKind, filterItems, isExpired, mergeItem, sortItems, withoutItem } from './itemsState'
 
 function row(over: Partial<ItemRow> & { id: string }): ItemRow {
   return {
@@ -108,5 +108,30 @@ describe('filterItems', () => {
     expect(filterItems(items, '정기').map((x) => x.id)).toEqual(['1'])
     expect(filterItems(items, 'GITHUB').map((x) => x.id)).toEqual(['2'])
     expect(filterItems(items, 'final').map((x) => x.id)).toEqual(['3'])
+  })
+})
+
+describe('filterByKind', () => {
+  const items = [
+    row({ id: 't', kind: 'text', content: '메모' }),
+    row({ id: 'l', kind: 'link', content: 'https://example.com' }),
+    row({ id: 'i', kind: 'file', file_name: 'shot.png', mime_type: 'image/png' }),
+    row({ id: 'f', kind: 'file', file_name: 'paper.pdf', mime_type: 'application/pdf' }),
+    row({ id: 'n', kind: 'file', file_name: 'blob', mime_type: null }),
+  ]
+  it('all 은 원본 그대로', () => {
+    expect(filterByKind(items, 'all')).toBe(items)
+  })
+  it('text·link 는 kind 로', () => {
+    expect(filterByKind(items, 'text').map((x) => x.id)).toEqual(['t'])
+    expect(filterByKind(items, 'link').map((x) => x.id)).toEqual(['l'])
+  })
+  it('image 는 image/* 파일만, file 은 그 외 파일(mime 없음 포함)', () => {
+    expect(filterByKind(items, 'image').map((x) => x.id)).toEqual(['i'])
+    expect(filterByKind(items, 'file').map((x) => x.id)).toEqual(['f', 'n'])
+  })
+  it('countByKind 는 종류별 개수와 전체', () => {
+    expect(countByKind(items)).toEqual({ all: 5, text: 1, link: 1, image: 1, file: 2 })
+    expect(countByKind([])).toEqual({ all: 0, text: 0, link: 0, image: 0, file: 0 })
   })
 })

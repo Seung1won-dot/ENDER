@@ -1,5 +1,8 @@
 import { useRef, useState, type KeyboardEvent } from 'react'
-import { EXPIRY_PRESETS, type ExpiryPreset } from '../lib/expiry'
+import type { ExpiryPreset } from '../lib/expiry'
+import { PASTE_KEY } from '../lib/keys'
+import { ExpirySegment } from './ExpirySegment'
+import { Icon } from './Icon'
 
 interface Props {
   expiry: ExpiryPreset
@@ -28,26 +31,20 @@ export function Composer({ expiry, onExpiryChange, onSubmitText, onPickFiles, bu
   }
 
   return (
-    <div className="composer">
+    <div className="composer" aria-busy={busy}>
+      <label className="sr-only" htmlFor="composer-input">
+        텍스트나 링크
+      </label>
       <textarea
+        id="composer-input"
         rows={2}
-        placeholder="텍스트나 링크를 적고 Enter (줄바꿈은 Shift+Enter). 화면 어디서든 Ctrl+V, 파일은 끌어다 놓기."
+        placeholder={`텍스트나 링크를 적고 Enter. 줄바꿈은 Shift+Enter. 화면 어디서든 ${PASTE_KEY}, 파일은 끌어다 놓기.`}
         value={text}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={onKey}
-        disabled={busy}
       />
       <div className="composer-bar">
-        <label className="dim small">
-          만료{' '}
-          <select value={expiry} onChange={(e) => onExpiryChange(e.target.value as ExpiryPreset)}>
-            {EXPIRY_PRESETS.map((p) => (
-              <option key={p.value} value={p.value}>
-                {p.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <ExpirySegment name="composer-expiry" value={expiry} onChange={onExpiryChange} disabled={busy} />
         <span className="spacer" />
         <input
           ref={fileInput}
@@ -60,11 +57,19 @@ export function Composer({ expiry, onExpiryChange, onSubmitText, onPickFiles, bu
             if (files.length) onPickFiles(files)
           }}
         />
-        <button className="ghost" type="button" disabled={busy} onClick={() => fileInput.current?.click()}>
+        <button className="btn btn-ghost" type="button" disabled={busy} onClick={() => fileInput.current?.click()}>
+          <Icon name="paperclip" size={16} />
           파일 선택
         </button>
-        <button className="primary" type="button" disabled={busy || !text.trim()} onClick={() => void send()}>
-          넣기
+        <button
+          className="btn btn-primary"
+          type="button"
+          disabled={busy || !text.trim()}
+          onClick={() => void send()}
+          title="Enter"
+        >
+          <Icon name="enter" size={16} />
+          {busy ? '넣는 중…' : '넣기'}
         </button>
       </div>
     </div>
