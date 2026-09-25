@@ -20,7 +20,7 @@ const AUTH_ERROR_MESSAGE_MATCHERS: Array<{ test: (msg: string) => boolean; code:
 export function messageOf(e: unknown): string {
   if (e && typeof e === 'object') {
     const code = (e as { code?: unknown }).code
-    if (typeof code === 'string' && code in AUTH_ERROR_CODE_MESSAGES) {
+    if (typeof code === 'string' && Object.hasOwn(AUTH_ERROR_CODE_MESSAGES, code)) {
       return AUTH_ERROR_CODE_MESSAGES[code]
     }
 

@@ -87,6 +87,9 @@ Deno.serve(async (req) => {
   if (tokErr) return json(500, { ok: false, error: tokErr.message })
   if (!tok) return json(401, { ok: false, error: '유효하지 않은 토큰이에요' })
 
+  // 토큰 검증 직후에 기록. 뒤에서 일부 실패해도 "사용됨" 은 남아야 한다.
+  await admin.from('share_tokens').update({ last_used_at: new Date().toISOString() }).eq('id', tok.id)
+
   let incoming: Incoming
   try {
     incoming = await parseBody(req)
@@ -102,7 +105,7 @@ Deno.serve(async (req) => {
     if (f.size > MAX_FILE_BYTES) return json(400, { ok: false, error: `50MB 를 넘는 파일이에요: ${f.name}` })
   }
 
-  const source = req.headers.get('x-source') ?? 'iPhone 단축어'
+  const source = (req.headers.get('x-source')?.trim() || 'iPhone 단축어').slice(0, 40)
   const expiresAt = computeExpiresAt(incoming.expiresIn)
   const inserted: string[] = []
 
@@ -113,7 +116,7 @@ Deno.serve(async (req) => {
       .insert({
         user_id: tok.user_id,
         kind: p.kind,
-        title: incoming.title?.trim() || p.title,
+        title: (incoming.title?.trim() || p.title).slice(0, 80),
         content: p.content,
         source,
         expires_at: expiresAt,
@@ -151,8 +154,6 @@ Deno.serve(async (req) => {
     }
     inserted.push(data.id as string)
   }
-
-  await admin.from('share_tokens').update({ last_used_at: new Date().toISOString() }).eq('id', tok.id)
 
   return json(200, { ok: true, inserted })
 })
