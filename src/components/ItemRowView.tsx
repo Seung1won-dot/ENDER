@@ -1,11 +1,14 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ItemRow } from '../lib/items'
 import { formatSize, isImageMime } from '../lib/files'
 import { describeRemaining, type ExtendBy } from '../lib/expiry'
-import { isSafeHttpUrl } from '../lib/detect'
+import { isSafeHttpUrl, looksLikeCode } from '../lib/detect'
+import { ExpiryMenu } from './ExpiryMenu'
+import { RowActions, type ItemAction } from './RowActions'
+import { RowEditor } from './RowEditor'
 import { Icon, type IconName } from './Icon'
 
-export type ItemAction = 'copy' | 'open' | 'download' | 'share' | 'pin' | 'delete' | 'extend' | 'edit'
+export type { ItemAction }
 export interface ActionExtra {
   by?: ExtendBy
   text?: string
@@ -17,6 +20,10 @@ interface Props {
   thumbUrl?: string | null
   /** 첫 화면 이후에 도착한 항목이면 잠깐 "내려오는" 연출 */
   isNew?: boolean
+  /** 키보드 탐색용: 활성 행만 Tab 순서에 들어간다 */
+  tabIndex?: number
+  registerRow?: (id: string, el: HTMLLIElement | null) => void
+  onFocusRow?: (id: string) => void
   onAction: (action: ItemAction, item: ItemRow, extra?: ActionExtra) => void
 }
 
@@ -36,75 +43,37 @@ function iconFor(item: ItemRow, isImage: boolean): IconName {
   return isImage ? 'image' : 'file'
 }
 
-/** 남은 기간 표시 겸 연장 메뉴 */
-function ExpiryMenu({ label, soon, onPick }: { label: string; soon: boolean; onPick: (by: ExtendBy) => void }) {
-  const [open, setOpen] = useState(false)
-  const wrap = useRef<HTMLSpanElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    const onDown = (e: MouseEvent) => {
-      if (!wrap.current?.contains(e.target as Node)) setOpen(false)
-    }
-    const onKey = (e: globalThis.KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('mousedown', onDown)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onDown)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [open])
-
-  const pick = (by: ExtendBy) => {
-    setOpen(false)
-    onPick(by)
+/** https 링크만 사이트 파비콘을 시도한다 (http 는 혼합 콘텐츠라 생략). */
+function faviconFor(item: ItemRow): string | null {
+  if (item.kind !== 'link' || !item.content?.startsWith('https://')) return null
+  try {
+    return `${new URL(item.content).origin}/favicon.ico`
+  } catch {
+    return null
   }
-
-  return (
-    <span className="meta-wrap" ref={wrap}>
-      <button
-        type="button"
-        className={soon ? 'meta-btn meta-soon' : 'meta-btn'}
-        title="만료 바꾸기"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-      >
-        {label}
-      </button>
-      {open && (
-        <div className="menu" role="menu" aria-label="만료 바꾸기">
-          <button type="button" role="menuitem" className="menu-item" onClick={() => pick('1d')}>
-            <Icon name="clock" size={14} />
-            1일 연장
-          </button>
-          <button type="button" role="menuitem" className="menu-item" onClick={() => pick('7d')}>
-            <Icon name="clock" size={14} />
-            7일 연장
-          </button>
-          <button type="button" role="menuitem" className="menu-item" onClick={() => pick('never')}>
-            <Icon name="pin" size={14} />
-            영구 보관
-          </button>
-        </div>
-      )}
-    </span>
-  )
 }
 
-export function ItemRowView({ item, canShare, thumbUrl, isNew = false, onAction }: Props) {
+export function ItemRowView({
+  item,
+  canShare,
+  thumbUrl,
+  isNew = false,
+  tabIndex = -1,
+  registerRow,
+  onFocusRow,
+  onAction,
+}: Props) {
   const remaining = describeRemaining(item.expires_at)
   const soon = item.expires_at !== null && new Date(item.expires_at).getTime() - Date.now() < HOUR
   const isImage = item.kind === 'file' && isImageMime(item.mime_type)
   const showThumb = isImage && !!thumbUrl
-  const canCopy = item.kind !== 'file' || isImage
+  const isCode = item.kind === 'text' && looksLikeCode(item.content ?? '')
+  const favicon = faviconFor(item)
 
   const [expanded, setExpanded] = useState(false)
   const [overflows, setOverflows] = useState(false)
   const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState('')
+  const [faviconOk, setFaviconOk] = useState(false)
   const textRef = useRef<HTMLDivElement>(null)
 
   // 8줄을 넘는지 측정. 글꼴이 늦게 로드되거나 창 폭이 바뀌면 다시 잰다.
@@ -120,74 +89,53 @@ export function ItemRowView({ item, canShare, thumbUrl, isNew = false, onAction 
     return () => ro.disconnect()
   }, [item.content, expanded, editing])
 
-  function startEdit() {
-    setDraft(item.content ?? '')
-    setEditing(true)
-  }
-  function saveEdit() {
-    const t = draft.trim()
-    if (!t) return
+  function saveEdit(text: string) {
     setEditing(false)
-    if (t !== (item.content ?? '').trim()) onAction('edit', item, { text: t })
-  }
-  function onEditKey(e: KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-      e.preventDefault()
-      saveEdit()
-    } else if (e.key === 'Escape') {
-      e.preventDefault()
-      setEditing(false)
-    }
+    if (text !== (item.content ?? '').trim()) onAction('edit', item, { text })
   }
 
   // kind 수식 클래스는 kind-* 로. (row-text 는 본문 요소의 클래스라 겹치면 안 된다)
   const cls = ['row', `kind-${item.kind}`, showThumb ? 'row-image' : '', item.pinned ? 'pinned' : '', isNew ? 'row-new' : '']
     .filter(Boolean)
     .join(' ')
+  const textCls = ['row-text', isCode ? 'code' : '', expanded ? '' : 'is-clamped'].filter(Boolean).join(' ')
 
   return (
-    <li className={cls}>
+    <li
+      className={cls}
+      data-id={item.id}
+      tabIndex={tabIndex}
+      ref={(el) => registerRow?.(item.id, el)}
+      onFocus={(e) => {
+        if (e.target === e.currentTarget) onFocusRow?.(item.id)
+      }}
+    >
       {showThumb ? (
         <img className="row-thumb" src={thumbUrl ?? undefined} alt={item.file_name ?? ''} loading="lazy" />
       ) : (
         <span className="row-kind" aria-hidden="true">
-          <Icon name={iconFor(item, isImage)} size={16} />
+          {favicon && (
+            <img
+              className={faviconOk ? 'row-favicon' : 'row-favicon is-hidden'}
+              src={favicon}
+              alt=""
+              referrerPolicy="no-referrer"
+              onLoad={() => setFaviconOk(true)}
+              onError={() => setFaviconOk(false)}
+            />
+          )}
+          {!faviconOk && <Icon name={iconFor(item, isImage)} size={16} />}
         </span>
       )}
 
       <div className="row-body">
         {item.kind === 'text' && editing && (
-          <div className="row-edit">
-            <label className="sr-only" htmlFor={`edit-${item.id}`}>
-              내용 편집
-            </label>
-            <textarea
-              id={`edit-${item.id}`}
-              autoFocus
-              rows={4}
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={onEditKey}
-              onFocus={(e) => {
-                const end = e.currentTarget.value.length
-                e.currentTarget.setSelectionRange(end, end)
-              }}
-            />
-            <div className="row-edit-bar">
-              <button type="button" className="btn btn-primary" disabled={!draft.trim()} onClick={saveEdit}>
-                저장
-              </button>
-              <button type="button" className="btn btn-ghost" onClick={() => setEditing(false)}>
-                취소
-              </button>
-              <span className="row-edit-hint">Enter 저장 · Shift+Enter 줄바꿈 · Esc 취소</span>
-            </div>
-          </div>
+          <RowEditor id={item.id} initial={item.content ?? ''} onSave={saveEdit} onCancel={() => setEditing(false)} />
         )}
 
         {item.kind === 'text' && !editing && (
           <>
-            <div ref={textRef} className={expanded ? 'row-text' : 'row-text is-clamped'}>
+            <div ref={textRef} className={textCls}>
               {item.content}
             </div>
             {(overflows || expanded) && (
@@ -226,55 +174,14 @@ export function ItemRowView({ item, canShare, thumbUrl, isNew = false, onAction 
         </div>
       </div>
 
-      <div className="row-actions">
-        {canCopy && (
-          <button
-            className="icon-btn"
-            title={isImage ? '이미지 복사' : '복사'}
-            aria-label={isImage ? '이미지 복사' : '복사'}
-            onClick={() => onAction('copy', item)}
-          >
-            <Icon name="copy" size={16} />
-          </button>
-        )}
-        {item.kind === 'text' && (
-          <button className="icon-btn" title="편집" aria-label="편집" onClick={startEdit} disabled={editing}>
-            <Icon name="pencil" size={16} />
-          </button>
-        )}
-        {item.kind === 'link' && (
-          <button className="icon-btn" title="새 탭에서 열기" aria-label="새 탭에서 열기" onClick={() => onAction('open', item)}>
-            <Icon name="external" size={16} />
-          </button>
-        )}
-        {item.kind === 'file' && (
-          <button className="icon-btn" title="다운로드" aria-label="다운로드" onClick={() => onAction('download', item)}>
-            <Icon name="download" size={16} />
-          </button>
-        )}
-        {canShare && (
-          <button
-            className="icon-btn"
-            title="다른 앱으로 공유"
-            aria-label="다른 앱으로 공유"
-            onClick={() => onAction('share', item)}
-          >
-            <Icon name="share" size={16} />
-          </button>
-        )}
-        <button
-          className={item.pinned ? 'icon-btn is-on' : 'icon-btn'}
-          title={item.pinned ? '고정 해제' : '고정'}
-          aria-label="고정"
-          aria-pressed={item.pinned}
-          onClick={() => onAction('pin', item)}
-        >
-          <Icon name="pin" size={16} filled={item.pinned} />
-        </button>
-        <button className="icon-btn danger" title="삭제" aria-label="삭제" onClick={() => onAction('delete', item)}>
-          <Icon name="trash" size={16} />
-        </button>
-      </div>
+      <RowActions
+        item={item}
+        isImage={isImage}
+        canShare={canShare}
+        editing={editing}
+        onEdit={() => setEditing(true)}
+        onAction={(a) => onAction(a, item)}
+      />
     </li>
   )
 }

@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { fetchTitle } from '../_shared/html.ts'
 import {
   MAX_FILE_BYTES,
   buildTextPayload,
@@ -108,15 +109,19 @@ Deno.serve(async (req) => {
   const source = (req.headers.get('x-source')?.trim() || 'iPhone 단축어').slice(0, 40)
   const expiresAt = computeExpiresAt(incoming.expiresIn)
   const inserted: string[] = []
+  const counts = { text: 0, link: 0, file: 0 }
 
   for (const text of incoming.texts) {
     const p = buildTextPayload(text)
+    // 링크는 페이지 제목을 3초 안에 가져와 보고, 안 되면 호스트/경로 제목을 쓴다.
+    const custom = incoming.title?.trim()
+    const title = custom || (p.kind === 'link' ? (await fetchTitle(p.content, 3000)) ?? p.title : p.title)
     const { data, error } = await admin
       .from('items')
       .insert({
         user_id: tok.user_id,
         kind: p.kind,
-        title: (incoming.title?.trim() || p.title).slice(0, 80),
+        title: title.slice(0, 80),
         content: p.content,
         source,
         expires_at: expiresAt,
@@ -125,6 +130,7 @@ Deno.serve(async (req) => {
       .single()
     if (error) return json(500, { ok: false, error: error.message, inserted })
     inserted.push(data.id as string)
+    counts[p.kind] += 1
   }
 
   for (const f of incoming.files) {
@@ -153,7 +159,14 @@ Deno.serve(async (req) => {
       return json(500, { ok: false, error: error.message, inserted })
     }
     inserted.push(data.id as string)
+    counts.file += 1
   }
 
-  return json(200, { ok: true, inserted })
+  // 단축어 알림 본문으로 쓰는 한 줄 (예: "링크 1개 · 파일 2개 넣었어요")
+  const parts = [
+    counts.text > 0 ? `텍스트 ${counts.text}개` : '',
+    counts.link > 0 ? `링크 ${counts.link}개` : '',
+    counts.file > 0 ? `파일 ${counts.file}개` : '',
+  ].filter(Boolean)
+  return json(200, { ok: true, inserted, summary: `${parts.join(' · ')} 넣었어요` })
 })

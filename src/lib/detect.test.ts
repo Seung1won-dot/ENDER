@@ -1,5 +1,23 @@
 import { describe, expect, it } from 'vitest'
-import { detectKind, isSafeHttpUrl, linkTitle } from './detect'
+import { detectKind, isSafeHttpUrl, linkTitle, looksLikeCode } from './detect'
+
+describe('looksLikeCode', () => {
+  it('셸 명령 여러 줄', () => {
+    expect(looksLikeCode('sudo apt update\nsystemctl enable --now qemu-guest-agent\nqm set 101 --agent enabled=1')).toBe(true)
+  })
+  it('JSON', () => {
+    expect(looksLikeCode('{\n  "a": 1,\n  "b": [1, 2]\n}')).toBe(true)
+  })
+  it('코드 조각', () => {
+    expect(looksLikeCode('function f(x) {\n  return x * 2;\n}')).toBe(true)
+  })
+  it('일반 문장이나 짧은 한 줄은 아님', () => {
+    expect(looksLikeCode('내일 세미나 발표 순서: 1) 구성 2) 백업')).toBe(false)
+    expect(looksLikeCode('ls -la')).toBe(false)
+    expect(looksLikeCode('회의실 예약 오후 2시.\n프로젝터 챙기기.')).toBe(false)
+    expect(looksLikeCode('')).toBe(false)
+  })
+})
 
 describe('detectKind', () => {
   it('일반 문장은 text', () => {

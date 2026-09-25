@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import { getDeviceName, setDeviceName } from '../lib/device'
 import type { ExpiryPreset } from '../lib/expiry'
 import { formatSize } from '../lib/files'
+import { THEMES, type Theme } from '../lib/theme'
 import { ExpirySegment } from './ExpirySegment'
 import { TokenSection } from './TokenSection'
-import { Icon } from './Icon'
+import { Icon, type IconName } from './Icon'
 
 const FREE_STORAGE_BYTES = 1024 * 1024 * 1024 // Supabase 무료 티어 Storage 1GB
+const THEME_ICON: Record<Theme, IconName> = { auto: 'monitor', dark: 'moon', light: 'sun' }
 
 interface Props {
   open: boolean
@@ -15,12 +17,25 @@ interface Props {
   expiry: ExpiryPreset
   onExpiryChange: (p: ExpiryPreset) => void
   onDeviceChange: (name: string) => void
+  theme: Theme
+  onThemeChange: (t: Theme) => void
   onLogout: () => void
   /** 파일 항목 크기 합계 */
   usedBytes: number
 }
 
-export function SettingsDialog({ open, onClose, email, expiry, onExpiryChange, onDeviceChange, onLogout, usedBytes }: Props) {
+export function SettingsDialog({
+  open,
+  onClose,
+  email,
+  expiry,
+  onExpiryChange,
+  onDeviceChange,
+  theme,
+  onThemeChange,
+  onLogout,
+  usedBytes,
+}: Props) {
   const ref = useRef<HTMLDialogElement>(null)
   const [device, setDevice] = useState(getDeviceName())
   const usedPct = Math.min(100, Math.round((usedBytes / FREE_STORAGE_BYTES) * 100))
@@ -68,6 +83,33 @@ export function SettingsDialog({ open, onClose, email, expiry, onExpiryChange, o
 
       <section className="dialog-section">
         <div className="field">
+          <span className="field-label">화면 테마</span>
+          <fieldset className="seg">
+            <legend className="sr-only">화면 테마</legend>
+            <div className="seg-group">
+              {THEMES.map((t) => (
+                <label key={t.value} className="seg-opt">
+                  <input
+                    type="radio"
+                    name="settings-theme"
+                    value={t.value}
+                    checked={theme === t.value}
+                    onChange={() => onThemeChange(t.value)}
+                  />
+                  <span>
+                    <Icon name={THEME_ICON[t.value]} size={13} />
+                    {t.label}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <span className="field-help">자동은 이 기기의 시스템 설정을 따라요. 기기마다 따로 저장돼요.</span>
+        </div>
+      </section>
+
+      <section className="dialog-section">
+        <div className="field">
           <span className="field-label">기본 만료</span>
           <ExpirySegment name="settings-expiry" value={expiry} onChange={onExpiryChange} label="기본 만료" showLabel={false} />
           <span className="field-help">입력창의 만료 선택에도 이 값이 기본으로 들어가요.</span>
@@ -77,11 +119,19 @@ export function SettingsDialog({ open, onClose, email, expiry, onExpiryChange, o
       <section className="dialog-section">
         <div className="field">
           <span className="field-label">파일 용량</span>
-          <div className="meter" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={usedPct} aria-label="파일 용량">
+          <div
+            className="meter"
+            role="meter"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={usedPct}
+            aria-label="파일 용량"
+          >
             <div className="meter-fill" style={{ width: `${usedPct}%` }} />
           </div>
           <span className="field-help">
-            <span className="mono">{formatSize(usedBytes)}</span> / 1 GB (Supabase 무료 한도). 만료된 파일은 앱을 열 때 정리돼요.
+            <span className="mono">{formatSize(usedBytes)}</span> / 1 GB (Supabase 무료 한도). 만료된 파일은 앱을 열 때
+            정리돼요.
           </span>
         </div>
       </section>

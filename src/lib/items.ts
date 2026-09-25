@@ -121,6 +121,11 @@ export async function setPinned(id: string, pinned: boolean): Promise<void> {
   if (error) throw error
 }
 
+export async function setTitle(id: string, title: string): Promise<void> {
+  const { error } = await supabase.from(ITEMS_TABLE).update({ title: title.slice(0, TITLE_MAX) }).eq('id', id)
+  if (error) throw error
+}
+
 export async function setExpiresAt(id: string, expiresAt: string | null): Promise<void> {
   const { error } = await supabase.from(ITEMS_TABLE).update({ expires_at: expiresAt }).eq('id', id)
   if (error) throw error

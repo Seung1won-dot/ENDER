@@ -13,6 +13,7 @@ import {
 import { isImageMime, toPngBlob } from '../lib/files'
 import { extendExpiresAt } from '../lib/expiry'
 import { isSafeHttpUrl } from '../lib/detect'
+import { enrichLinkTitle } from '../lib/preview'
 import { messageOf } from '../lib/errors'
 import { toast } from '../lib/toast'
 import type { ActionExtra, ItemAction } from '../components/ItemRowView'
@@ -154,7 +155,10 @@ export function useItemActions({ upsertLocal, removeLocal, reload }: Deps) {
             case 'edit': {
               if (!extra?.text) return
               upsertLocal({ ...item, ...buildTextUpdate(extra.text) })
-              upsertLocal(await updateTextItem(item.id, extra.text))
+              const row = await updateTextItem(item.id, extra.text)
+              upsertLocal(row)
+              // 편집으로 링크가 됐으면 페이지 제목도 가져온다
+              if (row.kind === 'link') void enrichLinkTitle(row).then((u) => u && upsertLocal(u))
               break
             }
           }
