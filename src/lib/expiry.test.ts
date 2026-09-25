@@ -1,5 +1,27 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_EXPIRY, EXPIRY_PRESETS, computeExpiresAt, describeRemaining, isExpiryPreset } from './expiry'
+import {
+  DEFAULT_EXPIRY,
+  EXPIRY_PRESETS,
+  computeExpiresAt,
+  describeRemaining,
+  extendExpiresAt,
+  isExpiryPreset,
+} from './expiry'
+
+describe('extendExpiresAt', () => {
+  const now = new Date('2026-09-25T12:00:00.000Z')
+  it('영구는 null', () => {
+    expect(extendExpiresAt('2026-09-26T00:00:00.000Z', 'never', now)).toBeNull()
+  })
+  it('남은 기간에 더한다', () => {
+    expect(extendExpiresAt('2026-09-26T00:00:00.000Z', '1d', now)).toBe('2026-09-27T00:00:00.000Z')
+    expect(extendExpiresAt('2026-09-26T00:00:00.000Z', '7d', now)).toBe('2026-10-03T00:00:00.000Z')
+  })
+  it('이미 지났거나 없으면 지금부터', () => {
+    expect(extendExpiresAt('2026-09-25T00:00:00.000Z', '7d', now)).toBe('2026-10-02T12:00:00.000Z')
+    expect(extendExpiresAt(null, '1d', now)).toBe('2026-09-26T12:00:00.000Z')
+  })
+})
 
 const now = new Date('2026-09-25T05:00:00.000Z')
 

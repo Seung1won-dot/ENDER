@@ -27,6 +27,15 @@ export function computeExpiresAt(preset: ExpiryPreset, now: Date = new Date()): 
   return new Date(now.getTime() + PRESET_MS[preset]).toISOString()
 }
 
+export type ExtendBy = '1d' | '7d' | 'never'
+
+/** 만료 연장. 남은 기간이 있으면 거기에 더하고, 지났거나 없으면 지금부터 센다. 'never' 는 영구. */
+export function extendExpiresAt(current: string | null, by: ExtendBy, now: Date = new Date()): string | null {
+  if (by === 'never') return null
+  const base = current ? Math.max(new Date(current).getTime(), now.getTime()) : now.getTime()
+  return new Date(base + PRESET_MS[by]).toISOString()
+}
+
 export function describeRemaining(expiresAt: string | null, now: Date = new Date()): string | null {
   if (!expiresAt) return null
   const diff = new Date(expiresAt).getTime() - now.getTime()
