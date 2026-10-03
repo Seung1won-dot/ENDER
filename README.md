@@ -1,16 +1,54 @@
-# 📦 Ender Chest
+# Ender Chest
 
 어디서 열어도 같은 내용물이 보이는 나만의 상자. 폰에서 넣으면 PC 에서 바로 꺼내고, PC 에서 넣으면 폰에서 바로 꺼낸다.
+
+| 항목 | 내용 |
+|------|------|
+| 형태 | PWA (메신저 "나에게 보내기" 의 대체재) |
+| 기술 스택 | React 18 · TypeScript · Vite · Supabase |
+| 운영 비용 | 0원 |
+
+## 목차
+
+- [소개](#소개)
+- [주요 기능](#주요-기능)
+- [기술 스택](#기술-스택)
+- [프로젝트 구조](#프로젝트-구조)
+- [셋업 (30분)](#셋업-30분)
+- [iOS 단축어 (아이폰에서 넣기)](#ios-단축어-아이폰에서-넣기)
+- [보안 메모](#보안-메모)
+- [문서](#문서)
+
+## 소개
+
 메신저 "나에게 보내기" 의 대체재. PWA + Supabase, 운영 비용 0원.
+데이터는 내 Supabase 프로젝트에만 저장되며, RLS 로 본인 데이터만 접근한다.
+
+## 주요 기능
 
 - 텍스트 · 링크 · 파일(≤50MB) 저장, 모든 기기 실시간 반영
 - PC: 입력창, **Ctrl+V**(텍스트·이미지), **드래그&드롭**, 파일 선택
-- 아이폰: 공유 시트 → 단축어 → 상자 (아래 "iOS 단축어")
+- 아이폰: 공유 시트 → 단축어 → 상자 (아래 [iOS 단축어](#ios-단축어-아이폰에서-넣기))
 - 복사 · 다운로드 · 다른 앱으로 공유 · 고정 · 검색(`/`) · 종류 필터(텍스트·링크·이미지·파일) · 만료(1h/1d/7d/영구)
-- 화면 기준은 `DESIGN.md`(색·글꼴·구성), 제품 기준은 `PRODUCT.md`. 화면을 고칠 때 먼저 읽는다.
-- 데이터는 내 Supabase 프로젝트에만. RLS 로 본인 데이터만 접근.
 
-기획서: `docs/PLAN.md` · 구현 스펙: `docs/superpowers/specs/`
+## 기술 스택
+
+| 구분 | 기술 |
+|------|------|
+| 프론트엔드 | React 18, TypeScript, Vite, vite-plugin-pwa |
+| 백엔드 | Supabase (Auth, Postgres + RLS, Storage, Realtime, Edge Function) |
+| 테스트 | Vitest |
+| 배포 | Vercel |
+
+## 프로젝트 구조
+
+```
+src/lib        순수 로직 + Supabase 데이터 계층 (vitest)
+src/hooks      세션 · 실시간 목록 · 붙여넣기 · 드롭존 · 서명 URL
+src/components 화면
+supabase/migrations   스키마 · RLS · Storage 정책
+supabase/functions/share  아이폰 단축어용 Edge Function
+```
 
 ## 셋업 (30분)
 
@@ -52,10 +90,12 @@ npm run dev            # http://localhost:5173
 iOS Safari 는 PWA 공유 대상을 지원하지 않아 단축어가 공유 시트 역할을 한다.
 
 ### 준비
+
 1. 앱 설정(상단 오른쪽 아이콘) → "새 토큰" → `ec_...` 복사 (한 번만 표시된다).
 2. 함수 주소: `https://<프로젝트 ref>.supabase.co/functions/v1/share`
 
 ### 단축어 A: 텍스트·링크 보내기
+
 1. 단축어 앱 → + → 이름 "Ender Chest"
 2. **공유 시트에서 받기** 켜기. 받을 유형: 텍스트, URL, Safari 웹 페이지.
 3. 동작 추가 **URL의 콘텐츠 가져오기**
@@ -68,6 +108,7 @@ iOS Safari 는 PWA 공유 대상을 지원하지 않아 단축어가 공유 시�
 5. 공유 시트에서 사용: Safari 공유 → Ender Chest.
 
 ### 단축어 B: 사진·파일 보내기
+
 1. 새 단축어 "Ender Chest 파일". 공유 시트 받을 유형: 이미지, 파일, PDF, 미디어.
 2. **URL의 콘텐츠 가져오기**
    - 방법 POST, 헤더 동일
@@ -76,21 +117,13 @@ iOS Safari 는 PWA 공유 대상을 지원하지 않아 단축어가 공유 시�
 3. 사진 앱 → 공유 → Ender Chest 파일. 여러 장을 선택하면 각각 업로드된다.
 
 ### 확인
+
 PC 화면에 출처 `iPhone` 항목이 1~2초 안에 뜬다. 안 되면: 토큰 오타(공백 포함 여부), 함수 주소의 프로젝트 ref, 단축어의 "공유 시트에서 받기" 유형을 확인.
 응답 본문이 `{"ok":false,"error":"..."}` 면 그 메시지가 원인이다. 단축어 마지막에 "결과 보기" 동작을 넣으면 응답을 볼 수 있다.
 
 ### 만료 지정
+
 JSON 본문에 `"expires_in": "1h" | "1d" | "7d" | "never"` 를 추가할 수 있다. 없으면 7일.
-
-## 구조
-
-```
-src/lib        순수 로직 + Supabase 데이터 계층 (vitest)
-src/hooks      세션 · 실시간 목록 · 붙여넣기 · 드롭존 · 서명 URL
-src/components 화면
-supabase/migrations   스키마 · RLS · Storage 정책
-supabase/functions/share  아이폰 단축어용 Edge Function
-```
 
 ## 보안 메모
 
@@ -98,3 +131,9 @@ supabase/functions/share  아이폰 단축어용 Edge Function
 - 파일은 비공개 버킷 + 1시간 서명 URL.
 - 단축어 토큰은 SHA-256 해시만 저장. 생성 직후 1회만 표시.
 - `service_role` 키는 Edge Function 런타임 환경변수에만 존재한다. 저장소에 넣지 말 것.
+
+## 문서
+
+- 기획서: [`docs/PLAN.md`](docs/PLAN.md)
+- 구현 스펙: [`docs/superpowers/specs/`](docs/superpowers/specs/)
+- 화면 기준: [`DESIGN.md`](DESIGN.md) (색·글꼴·구성) / 제품 기준: [`PRODUCT.md`](PRODUCT.md). 화면을 고칠 때 먼저 읽는다.
