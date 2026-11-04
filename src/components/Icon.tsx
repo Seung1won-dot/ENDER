@@ -18,6 +18,7 @@ export type IconName =
   | 'paperclip'
   | 'enter'
   | 'check'
+  | 'checkmark'
   | 'alert'
   | 'chevron'
   | 'logout'
@@ -124,6 +125,7 @@ const PATHS: Record<IconName, JSX.Element> = {
       <path d="m9 12 2 2 4-4" />
     </>
   ),
+  checkmark: <path d="M20 6 9 17l-5-5" />,
   alert: (
     <>
       <circle cx="12" cy="12" r="10" />
@@ -190,7 +192,10 @@ export function Icon({ name, size = 18, filled = false, className, ...rest }: Ic
   )
 }
 
-/** 상자 마크. 앱 아이콘(public/icon.svg)과 같은 도형: 둥근 몸체, 뚜껑 선, 가운데 청록 눈. */
+/**
+ * 상자 마크. 앱 아이콘(public/icon.svg)과 같은 도형: 둥근 몸체, 뚜껑 선, 가운데 청록 눈.
+ * 뚜껑(.mark-lid)과 눈(.mark-eye)을 따로 그려 두어 첫 화면 연출(src/lib/intro.ts)이 뚜껑만 들 수 있다.
+ */
 export function Mark({ size = 22, className }: { size?: number; className?: string }) {
   return (
     <svg
@@ -200,10 +205,25 @@ export function Mark({ size = 22, className }: { size?: number; className?: stri
       viewBox="0 0 24 24"
       aria-hidden="true"
       focusable="false"
+      overflow="visible"
     >
-      <rect x="3" y="4.5" width="18" height="16" rx="3.5" fill="var(--bg-elev)" stroke="currentColor" strokeWidth="1.75" />
-      <path d="M3 10.5h18" stroke="currentColor" strokeWidth="1.75" />
-      <rect x="10" y="8.5" width="4" height="4" rx="1.2" fill="var(--accent)" />
+      <path
+        d="M3 10.5h18V17a3.5 3.5 0 0 1-3.5 3.5h-11A3.5 3.5 0 0 1 3 17Z"
+        fill="var(--bg-elev)"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinejoin="round"
+      />
+      <g className="mark-lid">
+        <path
+          d="M3 10.5V8a3.5 3.5 0 0 1 3.5-3.5h11A3.5 3.5 0 0 1 21 8v2.5Z"
+          fill="var(--bg-elev)"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinejoin="round"
+        />
+        <rect className="mark-eye" x="10" y="8.5" width="4" height="4" rx="1.2" fill="var(--accent)" />
+      </g>
     </svg>
   )
 }

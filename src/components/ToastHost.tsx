@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+import { AnimatePresence, m } from 'motion/react'
 import { subscribeToasts, type ToastMessage } from '../lib/toast'
+import { EASE, T_LAYOUT } from '../lib/motion'
 import { Icon } from './Icon'
 
 const TTL_MS = 3500
@@ -30,15 +32,30 @@ export function ToastHost() {
     if (toasts.length > 0 && !isPopoverOpen(el)) el.showPopover()
   }, [toasts.length])
 
-  if (toasts.length === 0) return null
+  // 마지막 토스트가 사라지는 연출이 끝난 뒤에 popover 를 닫는다.
+  function onExitComplete() {
+    const el = ref.current
+    if (el && toasts.length === 0 && typeof el.hidePopover === 'function' && isPopoverOpen(el)) el.hidePopover()
+  }
+
   return (
     <div ref={ref} popover="manual" className="toast-host" role="status" aria-live="polite">
-      {toasts.map((t) => (
-        <div key={t.id} className={`toast toast-${t.level}`}>
-          <Icon name={t.level === 'error' ? 'alert' : 'check'} size={18} />
-          {t.text}
-        </div>
-      ))}
+      <AnimatePresence initial={false} onExitComplete={onExitComplete}>
+        {toasts.map((t) => (
+          <m.div
+            key={t.id}
+            layout="position"
+            className={`toast toast-${t.level}`}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4, transition: { duration: 0.16, ease: EASE } }}
+            transition={{ duration: 0.2, ease: EASE, layout: T_LAYOUT }}
+          >
+            <Icon name={t.level === 'error' ? 'alert' : 'check'} size={18} />
+            {t.text}
+          </m.div>
+        ))}
+      </AnimatePresence>
     </div>
   )
 }

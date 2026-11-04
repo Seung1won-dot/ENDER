@@ -35,7 +35,7 @@
 
 | 구분 | 기술 |
 |------|------|
-| 프론트엔드 | React 18, TypeScript, Vite, vite-plugin-pwa |
+| 프론트엔드 | React 18, TypeScript, Vite, vite-plugin-pwa, Motion(목록·버튼 움직임), Anime.js(첫 화면 연출) |
 | 백엔드 | Supabase (Auth, Postgres + RLS, Storage, Realtime, Edge Function) |
 | 테스트 | Vitest |
 | 배포 | Vercel |
@@ -71,6 +71,8 @@ npm run dev            # http://localhost:5173
 ```
 
 `npm run check` = 타입체크 + 단위 테스트 + 빌드.
+
+로그인 없이 화면만 보려면 개발 서버에서 `http://localhost:5173/preview.html` 을 연다. 가짜 항목으로 상자 화면·빈 상자·도착·삭제·고정·토스트를 눌러 볼 수 있다(개발 전용, 빌드에 포함되지 않음). 로그인 화면 미리보기는 `.env` 가 없으면 가짜 값으로 띄운다: `VITE_SUPABASE_URL=http://localhost:54321 VITE_SUPABASE_ANON_KEY=dev npm run dev`.
 
 ### 3. Vercel 배포
 

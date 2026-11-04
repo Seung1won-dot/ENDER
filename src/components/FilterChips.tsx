@@ -1,4 +1,6 @@
-import type { KeyboardEvent } from 'react'
+import { useId, type KeyboardEvent } from 'react'
+import { LayoutGroup, m } from 'motion/react'
+import { T_INDICATOR } from '../lib/motion'
 import { KIND_FILTERS, type KindFilter } from '../lib/itemsState'
 
 interface Props {
@@ -9,6 +11,7 @@ interface Props {
 
 /** 종류 필터 칩 한 줄. radiogroup 이라 화살표로 옮겨 다닐 수 있다. */
 export function FilterChips({ value, counts, onChange }: Props) {
+  const groupId = useId()
   function onKey(e: KeyboardEvent<HTMLDivElement>) {
     const n = KIND_FILTERS.length
     const idx = KIND_FILTERS.findIndex((f) => f.value === value)
@@ -25,26 +28,30 @@ export function FilterChips({ value, counts, onChange }: Props) {
     el?.focus()
   }
 
+  // 선택 표시는 칩 사이를 미끄러져 옮겨 가는 한 장의 배경(layoutId)이다.
   return (
-    <div className="chips" role="radiogroup" aria-label="종류" onKeyDown={onKey}>
-      {KIND_FILTERS.map((f) => {
-        const on = value === f.value
-        return (
-          <button
-            key={f.value}
-            type="button"
-            role="radio"
-            aria-checked={on}
-            tabIndex={on ? 0 : -1}
-            data-kind={f.value}
-            className="chip"
-            onClick={() => onChange(f.value)}
-          >
-            {f.label}
-            <span className="chip-count">{counts[f.value]}</span>
-          </button>
-        )
-      })}
-    </div>
+    <LayoutGroup id={groupId}>
+      <div className="chips" role="radiogroup" aria-label="종류" onKeyDown={onKey}>
+        {KIND_FILTERS.map((f) => {
+          const on = value === f.value
+          return (
+            <button
+              key={f.value}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              tabIndex={on ? 0 : -1}
+              data-kind={f.value}
+              className="chip"
+              onClick={() => onChange(f.value)}
+            >
+              {on && <m.span className="chip-indicator" layoutId="chip-indicator" transition={T_INDICATOR} />}
+              <span className="chip-label">{f.label}</span>
+              <span className="chip-count">{counts[f.value]}</span>
+            </button>
+          )
+        })}
+      </div>
+    </LayoutGroup>
   )
 }

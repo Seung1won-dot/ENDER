@@ -1,4 +1,6 @@
+import { LayoutGroup, m } from 'motion/react'
 import { EXPIRY_PRESETS, type ExpiryPreset } from '../lib/expiry'
+import { T_INDICATOR } from '../lib/motion'
 
 interface Props {
   /** 같은 화면에 여러 개가 있어도 라디오 그룹이 섞이지 않도록 고유한 이름 */
@@ -21,21 +23,24 @@ export function ExpirySegment({ name, value, onChange, label = '만료', showLab
           {label}
         </span>
       )}
-      <div className="seg-group">
-        {EXPIRY_PRESETS.map((p) => (
-          <label key={p.value} className="seg-opt">
-            <input
-              type="radio"
-              name={name}
-              value={p.value}
-              checked={value === p.value}
-              disabled={disabled}
-              onChange={() => onChange(p.value)}
-            />
-            <span>{p.label}</span>
-          </label>
-        ))}
-      </div>
+      <LayoutGroup id={name}>
+        <div className="seg-group">
+          {EXPIRY_PRESETS.map((p) => (
+            <label key={p.value} className="seg-opt">
+              <input
+                type="radio"
+                name={name}
+                value={p.value}
+                checked={value === p.value}
+                disabled={disabled}
+                onChange={() => onChange(p.value)}
+              />
+              {value === p.value && <m.span className="seg-indicator" layoutId="seg-indicator" transition={T_INDICATOR} />}
+              <span className="seg-text">{p.label}</span>
+            </label>
+          ))}
+        </div>
+      </LayoutGroup>
     </fieldset>
   )
 }

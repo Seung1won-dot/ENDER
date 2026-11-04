@@ -17,7 +17,7 @@ import { isSafeHttpUrl } from '../lib/detect'
 import { messageOf } from '../lib/errors'
 import { toast } from '../lib/toast'
 import { countByKind, filterByKind, filterItems, type KindFilter } from '../lib/itemsState'
-import { useItems, type LiveStatus } from '../hooks/useItems'
+import { useItems } from '../hooks/useItems'
 import { useStoredExpiry } from '../hooks/useStoredExpiry'
 import { usePaste } from '../hooks/usePaste'
 import { useDropzone } from '../hooks/useDropzone'
@@ -25,19 +25,12 @@ import { useThumbUrls } from '../hooks/useSignedUrl'
 import { ItemList } from './ItemList'
 import { Composer } from './Composer'
 import { DropOverlay } from './DropOverlay'
-import { SearchBar } from './SearchBar'
+import { TopBar } from './TopBar'
 import { FilterChips } from './FilterChips'
 import { SettingsDialog } from './SettingsDialog'
-import { Icon, Mark } from './Icon'
 import type { ItemAction } from './ItemRowView'
 
 const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
-
-const STATUS_LABEL: Record<LiveStatus, string> = {
-  connecting: '연결 중',
-  live: '실시간',
-  offline: '오프라인',
-}
 
 async function shareItem(item: ItemRow): Promise<void> {
   if (item.kind === 'file' && item.file_path) {
@@ -68,22 +61,6 @@ export function ChestScreen({ session }: { session: Session }) {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const thumbUrls = useThumbUrls(items)
   const pending = useRef(0)
-
-  // 첫 화면에 있던 항목은 그냥 두고, 그 뒤에 나타난 항목만 "도착" 연출 대상으로 기억한다.
-  const seen = useRef<Set<string> | null>(null)
-  const fresh = useRef(new Set<string>())
-  if (!loading) {
-    if (seen.current === null) {
-      seen.current = new Set(items.map((i) => i.id))
-    } else {
-      for (const it of items) {
-        if (!seen.current.has(it.id)) {
-          seen.current.add(it.id)
-          fresh.current.add(it.id)
-        }
-      }
-    }
-  }
 
   const beginWork = useCallback(() => {
     pending.current += 1
@@ -160,9 +137,10 @@ export function ChestScreen({ session }: { session: Session }) {
   usePaste(pasteText, submitFiles)
   const dragging = useDropzone(submitFiles)
 
+  // 성공하면 true. 행이 "복사됨" 같은 짧은 확인 표시를 띄울 때 쓴다.
   const onAction = useCallback(
-    (action: ItemAction, item: ItemRow) => {
-      void (async () => {
+    (action: ItemAction, item: ItemRow): Promise<boolean> => {
+      return (async () => {
         try {
           switch (action) {
             case 'copy':
@@ -175,7 +153,7 @@ export function ChestScreen({ session }: { session: Session }) {
               }
               break
             case 'download': {
-              if (!item.file_path) return
+              if (!item.file_path) return false
               const url = await getDownloadUrl(item.file_path, item.file_name ?? 'file')
               const a = document.createElement('a')
               a.href = url
@@ -194,15 +172,17 @@ export function ChestScreen({ session }: { session: Session }) {
               await setPinned(item.id, !item.pinned)
               break
             case 'delete':
-              if (!window.confirm('이 항목을 삭제할까요?')) return
+              if (!window.confirm('이 항목을 삭제할까요?')) return false
               removeLocal(item.id)
               await deleteItem(item)
               break
           }
+          return true
         } catch (e) {
-          if (e instanceof DOMException && e.name === 'AbortError') return
+          if (e instanceof DOMException && e.name === 'AbortError') return false
           toast.error(messageOf(e))
           void reload()
+          return false
         }
       })()
     },
@@ -211,23 +191,7 @@ export function ChestScreen({ session }: { session: Session }) {
 
   return (
     <>
-      <header className="topbar">
-        <div className="topbar-inner">
-          <div className="brand">
-            <Mark size={22} />
-            <h1 className="brand-name">Ender Chest</h1>
-          </div>
-          <span className={`status status-${status}`} title={STATUS_LABEL[status]} role="status">
-            <span className="status-dot" />
-            <span className="status-label">{STATUS_LABEL[status]}</span>
-          </span>
-          <span className="spacer" />
-          <SearchBar value={query} onChange={setQuery} />
-          <button className="icon-btn" title="설정" aria-label="설정" onClick={() => setSettingsOpen(true)}>
-            <Icon name="sliders" size={18} />
-          </button>
-        </div>
-      </header>
+      <TopBar status={status} query={query} onQueryChange={setQuery} onOpenSettings={() => setSettingsOpen(true)} />
 
       <main className="screen">
         <Composer
@@ -246,7 +210,7 @@ export function ChestScreen({ session }: { session: Session }) {
           filtered={filtered}
           canShare={canShare}
           thumbUrls={thumbUrls}
-          freshIds={fresh.current}
+          filterKey={`${kind}|${query.trim().toLowerCase()}`}
           onAction={onAction}
           onClearFilters={clearFilters}
         />

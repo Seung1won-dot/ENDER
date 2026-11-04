@@ -1,7 +1,10 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { AnimatePresence, m } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { messageOf } from '../lib/errors'
 import { toast } from '../lib/toast'
+import { playChestIntro } from '../lib/intro'
+import { TAP_SCALE } from '../lib/motion'
 import { Mark } from './Icon'
 
 type Mode = 'login' | 'signup'
@@ -12,6 +15,10 @@ export function AuthScreen() {
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
+  const root = useRef<HTMLElement>(null)
+
+  // 첫 화면 연출: 상자 뚜껑이 한 번 들렸다 닫히고 폼이 차례로 올라온다(약 0.6초, 입력은 바로 가능).
+  useEffect(() => (root.current ? playChestIntro(root.current) : undefined), [])
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -54,19 +61,21 @@ export function AuthScreen() {
   }
 
   return (
-    <main className="auth">
-      <div className="auth-brand">
+    <main className="auth" ref={root}>
+      <div className="auth-brand" data-intro>
         <Mark size={44} />
         <h1>Ender Chest</h1>
       </div>
-      <p className="auth-tag">어디서 열어도 같은 내용물이 보이는 나만의 상자</p>
+      <p className="auth-tag" data-intro>
+        어디서 열어도 같은 내용물이 보이는 나만의 상자
+      </p>
 
       <form onSubmit={submit} className="auth-form">
-        <label className="field">
+        <label className="field" data-intro>
           <span className="field-label">이메일</span>
           <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
         </label>
-        <label className="field">
+        <label className="field" data-intro>
           <span className="field-label">비밀번호</span>
           <input
             type="password"
@@ -77,17 +86,39 @@ export function AuthScreen() {
             onChange={(e) => setPassword(e.target.value)}
           />
         </label>
-        <button type="submit" className="btn btn-primary" disabled={busy}>
-          {mode === 'login' ? '로그인' : '가입하기'}
-        </button>
-        <button type="button" className="btn btn-ghost" disabled={busy} onClick={magicLink}>
+        <m.button
+          type="submit"
+          className="btn btn-primary btn-block"
+          disabled={busy}
+          whileTap={busy ? undefined : { scale: TAP_SCALE }}
+          data-intro
+        >
+          {busy ? '확인 중…' : mode === 'login' ? '로그인' : '가입하기'}
+        </m.button>
+        <div className="auth-or" data-intro>
+          <span>또는</span>
+        </div>
+        <button type="button" className="btn btn-ghost btn-block" disabled={busy} onClick={magicLink} data-intro>
           비밀번호 없이 메일 링크로 로그인
         </button>
       </form>
 
-      {notice && <p className="notice">{notice}</p>}
+      <AnimatePresence initial={false}>
+        {notice && (
+          <m.p
+            key={notice}
+            className="notice"
+            role="status"
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+          >
+            {notice}
+          </m.p>
+        )}
+      </AnimatePresence>
 
-      <p className="auth-switch">
+      <p className="auth-switch" data-intro>
         {mode === 'login' ? (
           <>
             계정이 없나요?{' '}

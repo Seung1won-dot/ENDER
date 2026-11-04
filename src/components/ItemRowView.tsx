@@ -1,20 +1,26 @@
-import { useEffect, useRef, useState } from 'react'
+import { forwardRef, useEffect, useRef, useState } from 'react'
+import { AnimatePresence, m } from 'motion/react'
 import type { ItemRow } from '../lib/items'
 import { formatSize, isImageMime } from '../lib/files'
 import { describeRemaining } from '../lib/expiry'
 import { isSafeHttpUrl } from '../lib/detect'
+import { EASE, T_LAYOUT } from '../lib/motion'
 import { Icon, type IconName } from './Icon'
 
 export type ItemAction = 'copy' | 'open' | 'download' | 'share' | 'pin' | 'delete'
+/** 동작을 처리하고 성공 여부를 돌려준다(복사 확인 표시 등에 쓴다). */
+export type ItemActionHandler = (action: ItemAction, item: ItemRow) => Promise<boolean>
 
 interface Props {
   item: ItemRow
   canShare: boolean
   thumbUrl?: string | null
-  /** 첫 화면 이후에 도착한 항목이면 잠깐 "내려오는" 연출 */
-  isNew?: boolean
-  onAction: (action: ItemAction, item: ItemRow) => void
+  /** 첫 목록을 차례로 보여 줄 때의 지연(초). 그 뒤 도착하는 항목은 0. */
+  enterDelay?: number
+  onAction: ItemActionHandler
 }
+
+const COPIED_MS = 1400
 
 const HOUR = 60 * 60 * 1000
 
@@ -32,7 +38,11 @@ function iconFor(item: ItemRow, isImage: boolean): IconName {
   return isImage ? 'image' : 'file'
 }
 
-export function ItemRowView({ item, canShare, thumbUrl, isNew = false, onAction }: Props) {
+// AnimatePresence(mode="popLayout")가 ref 를 넘겨야 해서 forwardRef.
+export const ItemRowView = forwardRef<HTMLLIElement, Props>(function ItemRowView(
+  { item, canShare, thumbUrl, enterDelay = 0, onAction },
+  ref,
+) {
   const remaining = describeRemaining(item.expires_at)
   const soon = item.expires_at !== null && new Date(item.expires_at).getTime() - Date.now() < HOUR
   const isImage = item.kind === 'file' && isImageMime(item.mime_type)
@@ -41,6 +51,17 @@ export function ItemRowView({ item, canShare, thumbUrl, isNew = false, onAction 
   const [expanded, setExpanded] = useState(false)
   const [overflows, setOverflows] = useState(false)
   const textRef = useRef<HTMLDivElement>(null)
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    if (!copied) return
+    const t = window.setTimeout(() => setCopied(false), COPIED_MS)
+    return () => window.clearTimeout(t)
+  }, [copied])
+
+  function copy() {
+    void onAction('copy', item).then((ok) => ok && setCopied(true))
+  }
 
   // 8줄을 넘는지 측정. 글꼴이 늦게 로드되거나 창 폭이 바뀌면 다시 잰다.
   useEffect(() => {
@@ -56,12 +77,21 @@ export function ItemRowView({ item, canShare, thumbUrl, isNew = false, onAction 
   }, [item.content, expanded])
 
   // kind 수식 클래스는 kind-* 로. (row-text 는 본문 요소의 클래스라 겹치면 안 된다)
-  const cls = ['row', `kind-${item.kind}`, showThumb ? 'row-image' : '', item.pinned ? 'pinned' : '', isNew ? 'row-new' : '']
+  const cls = ['row', `kind-${item.kind}`, showThumb ? 'row-image' : '', item.pinned ? 'pinned' : '']
     .filter(Boolean)
     .join(' ')
 
   return (
-    <li className={cls}>
+    <m.li
+      ref={ref}
+      className={cls}
+      // 자리 이동(고정·삭제·새 항목)만 부드럽게. 높이 변화(펼치기)는 즉시 반영해 글자가 늘어나 보이지 않게.
+      layout="position"
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0, transition: { duration: 0.22, ease: EASE, delay: enterDelay } }}
+      exit={{ opacity: 0, transition: { duration: 0.14, ease: EASE } }}
+      transition={{ layout: T_LAYOUT }}
+    >
       {showThumb ? (
         <img className="row-thumb" src={thumbUrl ?? undefined} alt={item.file_name ?? ''} loading="lazy" />
       ) : (
@@ -114,17 +144,33 @@ export function ItemRowView({ item, canShare, thumbUrl, isNew = false, onAction 
 
       <div className="row-actions">
         {(item.kind === 'text' || item.kind === 'link') && (
-          <button className="icon-btn" title="복사" aria-label="복사" onClick={() => onAction('copy', item)}>
-            <Icon name="copy" size={16} />
+          <button
+            className={copied ? 'icon-btn is-done' : 'icon-btn'}
+            title={copied ? '복사했어요' : '복사'}
+            aria-label={copied ? '복사했어요' : '복사'}
+            onClick={copy}
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              <m.span
+                key={copied ? 'done' : 'copy'}
+                className="icon-swap"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.1, ease: EASE }}
+              >
+                <Icon name={copied ? 'checkmark' : 'copy'} size={16} />
+              </m.span>
+            </AnimatePresence>
           </button>
         )}
         {item.kind === 'link' && (
-          <button className="icon-btn" title="새 탭에서 열기" aria-label="새 탭에서 열기" onClick={() => onAction('open', item)}>
+          <button className="icon-btn" title="새 탭에서 열기" aria-label="새 탭에서 열기" onClick={() => void onAction('open', item)}>
             <Icon name="external" size={16} />
           </button>
         )}
         {item.kind === 'file' && (
-          <button className="icon-btn" title="다운로드" aria-label="다운로드" onClick={() => onAction('download', item)}>
+          <button className="icon-btn" title="다운로드" aria-label="다운로드" onClick={() => void onAction('download', item)}>
             <Icon name="download" size={16} />
           </button>
         )}
@@ -133,7 +179,7 @@ export function ItemRowView({ item, canShare, thumbUrl, isNew = false, onAction 
             className="icon-btn"
             title="다른 앱으로 공유"
             aria-label="다른 앱으로 공유"
-            onClick={() => onAction('share', item)}
+            onClick={() => void onAction('share', item)}
           >
             <Icon name="share" size={16} />
           </button>
@@ -143,14 +189,14 @@ export function ItemRowView({ item, canShare, thumbUrl, isNew = false, onAction 
           title={item.pinned ? '고정 해제' : '고정'}
           aria-label="고정"
           aria-pressed={item.pinned}
-          onClick={() => onAction('pin', item)}
+          onClick={() => void onAction('pin', item)}
         >
           <Icon name="pin" size={16} filled={item.pinned} />
         </button>
-        <button className="icon-btn danger" title="삭제" aria-label="삭제" onClick={() => onAction('delete', item)}>
+        <button className="icon-btn danger" title="삭제" aria-label="삭제" onClick={() => void onAction('delete', item)}>
           <Icon name="trash" size={16} />
         </button>
       </div>
-    </li>
+    </m.li>
   )
-}
+})

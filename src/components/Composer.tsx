@@ -1,6 +1,7 @@
 import { useRef, useState, type KeyboardEvent } from 'react'
+import { m } from 'motion/react'
 import type { ExpiryPreset } from '../lib/expiry'
-import { PASTE_KEY } from '../lib/keys'
+import { TAP_SCALE } from '../lib/motion'
 import { ExpirySegment } from './ExpirySegment'
 import { Icon } from './Icon'
 
@@ -38,7 +39,8 @@ export function Composer({ expiry, onExpiryChange, onSubmitText, onPickFiles, bu
       <textarea
         id="composer-input"
         rows={2}
-        placeholder={`텍스트나 링크를 적고 Enter. 줄바꿈은 Shift+Enter. 화면 어디서든 ${PASTE_KEY}, 파일은 끌어다 놓기.`}
+        // 붙여넣기·끌어다 놓기 안내는 빈 상자 화면이 맡고, 자리표시자는 좁은 화면에서도 두 줄 안에 들게 짧게.
+        placeholder="텍스트나 링크를 적고 Enter · 줄바꿈은 Shift+Enter"
         value={text}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={onKey}
@@ -61,16 +63,17 @@ export function Composer({ expiry, onExpiryChange, onSubmitText, onPickFiles, bu
           <Icon name="paperclip" size={16} />
           파일 선택
         </button>
-        <button
+        <m.button
           className="btn btn-primary"
           type="button"
           disabled={busy || !text.trim()}
           onClick={() => void send()}
           title="Enter"
+          whileTap={busy || !text.trim() ? undefined : { scale: TAP_SCALE }}
         >
-          <Icon name="enter" size={16} />
+          {busy ? <span className="spinner" aria-hidden="true" /> : <Icon name="enter" size={16} />}
           {busy ? '넣는 중…' : '넣기'}
-        </button>
+        </m.button>
       </div>
     </div>
   )

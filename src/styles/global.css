@@ -171,6 +171,22 @@ kbd {
 .icon {
   flex: none;
 }
+.mark {
+  flex: none;
+  overflow: visible;
+}
+/* 첫 화면 연출(src/lib/intro.ts)이 뚜껑을 뒤쪽 경첩(왼쪽 아래 모서리) 기준으로 든다 */
+.mark-lid {
+  transform-box: fill-box;
+  transform-origin: 0% 100%;
+}
+.mark-eye {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+.intro-pending [data-intro] {
+  opacity: 0;
+}
 
 /* ---------- 레이아웃 ---------- */
 
@@ -220,17 +236,26 @@ kbd {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-left: 4px;
+  height: 24px;
+  padding: 0 9px 0 8px;
+  margin-left: 2px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
   font-size: 12px;
   font-weight: 500;
   color: var(--text-dim);
   white-space: nowrap;
+  overflow: hidden;
+}
+.status-label {
+  display: inline-block;
 }
 .status-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 999px;
   background: var(--text-faint);
+  transition: background-color var(--dur) var(--ease);
 }
 .status-live .status-dot {
   background: var(--accent);
@@ -274,6 +299,9 @@ kbd {
 }
 .btn:active:not(:disabled) {
   transform: translateY(1px);
+}
+.btn-block {
+  width: 100%;
 }
 .btn:disabled {
   opacity: 0.5;
@@ -321,7 +349,32 @@ kbd {
   color: var(--text-dim);
   transition:
     background-color var(--dur) var(--ease),
-    color var(--dur) var(--ease);
+    color var(--dur) var(--ease),
+    transform 120ms var(--ease);
+}
+/* 아이콘 버튼은 행마다 여러 개라 Motion 대신 CSS 로 가볍게 눌림만 */
+.icon-btn:active:not(:disabled) {
+  transform: scale(0.92);
+}
+.icon-btn.is-done,
+.icon-btn.is-done:hover {
+  color: var(--accent);
+}
+.icon-swap {
+  display: inline-flex;
+}
+.spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  animation: spin 700ms linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 .icon-btn:hover:not(:disabled) {
   background: var(--bg-hover);
@@ -464,11 +517,23 @@ input[type='search']::-webkit-search-decoration {
 .seg-opt input {
   position: absolute;
   inset: 0;
+  z-index: 2;
   margin: 0;
   opacity: 0;
   cursor: pointer;
 }
-.seg-opt span {
+/* 선택 배경 한 장이 옵션 사이를 미끄러진다(Motion layoutId) */
+.seg-indicator {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 999px;
+  background: var(--bg-hover);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+.seg-text {
+  position: relative;
+  z-index: 1;
   display: block;
   padding: 4px 10px;
   border-radius: 999px;
@@ -480,18 +545,15 @@ input[type='search']::-webkit-search-decoration {
     background-color var(--dur) var(--ease),
     color var(--dur) var(--ease);
 }
-.seg-opt input:hover + span {
+.seg-opt input:hover ~ .seg-text,
+.seg-opt input:checked ~ .seg-text {
   color: var(--text);
 }
-.seg-opt input:checked + span {
-  background: var(--bg-hover);
-  color: var(--text);
-}
-.seg-opt input:focus-visible + span {
+.seg-opt input:focus-visible ~ .seg-text {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
-.seg-opt input:disabled + span {
+.seg-opt input:disabled ~ .seg-text {
   opacity: 0.5;
 }
 
@@ -544,6 +606,7 @@ input[type='search']::-webkit-search-decoration {
   margin: 14px 0 4px;
 }
 .chip {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -564,10 +627,23 @@ input[type='search']::-webkit-search-decoration {
   background: var(--bg-hover);
   color: var(--text);
 }
-.chip[aria-checked='true'] {
+.chip[aria-checked='true'],
+.chip[aria-checked='true']:hover {
   color: var(--accent);
-  border-color: var(--accent);
+  background: transparent;
+}
+/* 선택 표시: 칩 사이를 미끄러지는 한 장(Motion layoutId). 칩 자신의 테두리를 덮는다. */
+.chip-indicator {
+  position: absolute;
+  inset: -1px;
+  border-radius: 999px;
+  border: 1px solid var(--accent);
   background: var(--accent-soft);
+  pointer-events: none;
+}
+.chip-label,
+.chip-count {
+  position: relative;
 }
 .chip-count {
   font-family: var(--mono);
@@ -584,19 +660,31 @@ input[type='search']::-webkit-search-decoration {
 .list {
   margin-top: 12px;
 }
-.group + .group {
-  margin-top: 20px;
+.rows {
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 .group-label {
-  margin: 0 0 2px;
+  padding: 4px 0 6px;
+}
+.row + .group-label {
+  margin-top: 20px;
+}
+.group-label h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
   font-size: 12px;
   font-weight: 500;
   color: var(--text-dim);
 }
-.rows {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.group-count {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-faint);
 }
 .row {
   display: grid;
@@ -610,21 +698,11 @@ input[type='search']::-webkit-search-decoration {
 .rows .row + .row {
   border-top: 1px solid var(--border);
 }
+.group-label + .row {
+  border-top: 1px solid var(--border);
+}
 .row:hover {
   background: var(--bg-hover);
-}
-.row-new {
-  animation: row-in 220ms var(--ease) both;
-}
-@keyframes row-in {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
 }
 .row-kind {
   width: 32px;
@@ -734,25 +812,33 @@ a.row-title:hover {
   color: var(--text-faint);
 }
 .empty-title {
-  margin: 0 0 16px;
+  margin: 0;
   font-size: 16px;
   font-weight: 600;
+  letter-spacing: -0.01em;
   color: var(--text);
 }
+.empty-sub {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--text-dim);
+}
 .empty-tips {
-  display: grid;
-  gap: 8px;
   max-width: 340px;
-  margin: 0 auto;
+  margin: 24px auto 0;
   padding: 0;
   list-style: none;
   text-align: left;
+  border-top: 1px solid var(--border);
 }
 .tip {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-height: 44px;
   font-size: 13px;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
 }
 .tip .icon {
   color: var(--text-faint);
@@ -761,7 +847,7 @@ a.row-title:hover {
   margin-left: auto;
 }
 .empty-actions {
-  margin-top: 12px;
+  margin-top: 16px;
 }
 .skel-row {
   display: grid;
@@ -829,7 +915,6 @@ a.row-title:hover {
   box-shadow: var(--shadow-float);
   font-size: 13px;
   font-weight: 500;
-  animation: row-in 220ms var(--ease) both;
 }
 .toast .icon {
   color: var(--accent);
@@ -855,6 +940,24 @@ a.row-title:hover {
 }
 .dialog::backdrop {
   background: var(--backdrop);
+}
+/* 네이티브 <dialog> 는 CSS 로만 연다(열릴 때 0.18초, 닫힘은 즉시) */
+.dialog[open] {
+  animation: dialog-in 180ms var(--ease);
+}
+.dialog[open]::backdrop {
+  animation: fade-in 180ms var(--ease);
+}
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
 }
 .dialog-head {
   display: flex;
@@ -978,7 +1081,10 @@ a.row-title:hover {
   display: flex;
   align-items: center;
   gap: 14px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+}
+.auth-brand .mark {
+  color: var(--text-faint);
 }
 .auth h1 {
   margin: 0;
@@ -995,8 +1101,22 @@ a.row-title:hover {
   display: grid;
   gap: 14px;
 }
-.auth-form .btn {
-  width: 100%;
+.auth-form .btn-primary {
+  margin-top: 4px;
+}
+.auth-or {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+.auth-or::before,
+.auth-or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
 }
 .notice {
   margin: 16px 0 0;
@@ -1022,6 +1142,9 @@ a.row-title:hover {
   }
   .status-label {
     display: none;
+  }
+  .status {
+    padding: 0 8px;
   }
   .search-wrap {
     flex: 1 1 100px;

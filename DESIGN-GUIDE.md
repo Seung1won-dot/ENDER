@@ -21,6 +21,7 @@
    - 튕기는 바운스 효과
 4. 다 만든 뒤 위 다섯 항목을 하나씩 점검하고 결과를 알려 준다.
 5. 마지막에 `npx --yes impeccable@latest detect <검사할 폴더>`를 실행해 지적 항목을 고치고, 아무것도 나오지 않을 때까지 반복한다.
+6. 움직임은 도구를 나눠 쓴다. 버튼·메뉴·목록·화면 전환·토스트는 Motion(`motion/react`, Motion+ 유료 기능 금지), 로고·첫 화면 한 장면(로그인, 빈 상자)만 Anime.js, 숫자 화면은 실제 데이터가 있을 때만 Bklit UI 차트. 핵심 요소에만 140~240ms, 튕김 없이, `prefers-reduced-motion` 을 항상 따른다. 기준값과 자리는 `DESIGN.md` 의 "Motion" 절.
 
 ---
 
