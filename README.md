@@ -80,6 +80,8 @@ npm install
 cp .env.example .env   # VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY 채우기
 ```
 
+값이 비어 있으면 앱이 흰 화면 대신 어떤 변수가 빠졌는지 알려 주는 안내 화면을 띄웁니다.
+
 ### 4. 실행
 
 ```bash
@@ -110,8 +112,16 @@ VITE_SUPABASE_URL=http://localhost:54321 VITE_SUPABASE_ANON_KEY=dev npm run dev
 
 1. GitHub 에 push 합니다.
 2. https://vercel.com → GitHub 로 로그인 → Add New Project → 이 저장소 Import.
-3. Framework Preset: Vite (자동 감지). Environment Variables 에 `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` 를 추가합니다.
+3. 빌드 설정은 `vercel.json` 에 있습니다(`npm run build` → `dist`). Environment Variables 에 `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` 를 추가합니다. 값을 바꾼 뒤에는 다시 배포해야 반영됩니다.
 4. Deploy → `https://<프로젝트>.vercel.app`. 이 주소를 Supabase URL Configuration 에 등록합니다(시작하기 1-4).
+
+### 단축어용 Edge Function 배포
+
+아이폰 단축어로 넣으려면 `share` 함수를 한 번 배포합니다. JWT 검증 끄기(`verify_jwt = false`)는 `supabase/config.toml` 에 들어 있습니다.
+
+```bash
+SUPABASE_ACCESS_TOKEN=<개인 액세스 토큰> npx supabase functions deploy share --project-ref <프로젝트 ref>
+```
 
 ### 기기 등록
 

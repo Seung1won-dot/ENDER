@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { messageOf } from './errors'
+import { NETWORK_ERROR_MESSAGE, messageOf } from './errors'
 
 describe('messageOf - Supabase auth error codes (한국어 매핑)', () => {
   it('invalid_credentials', () => {
@@ -78,5 +78,22 @@ describe('messageOf - 기존 동작 (매핑되지 않은 값)', () => {
     expect(messageOf(null)).toBe('알 수 없는 오류가 발생했어요')
     expect(messageOf(42)).toBe('알 수 없는 오류가 발생했어요')
     expect(messageOf({})).toBe('알 수 없는 오류가 발생했어요')
+  })
+})
+
+describe('messageOf - 네트워크 실패', () => {
+  it('Chrome fetch 실패(TypeError)', () => {
+    expect(messageOf(new TypeError('Failed to fetch'))).toBe(NETWORK_ERROR_MESSAGE)
+  })
+  it('Safari / Firefox 문구', () => {
+    expect(messageOf(new TypeError('Load failed'))).toBe(NETWORK_ERROR_MESSAGE)
+    expect(messageOf(new TypeError('NetworkError when attempting to fetch resource.'))).toBe(NETWORK_ERROR_MESSAGE)
+  })
+  it('supabase-js 의 AuthRetryableFetchError', () => {
+    expect(messageOf({ name: 'AuthRetryableFetchError', message: '{}', status: 0 })).toBe(NETWORK_ERROR_MESSAGE)
+  })
+  it('PostgREST 가 감싼 fetch 실패', () => {
+    expect(messageOf({ message: 'TypeError: Failed to fetch', details: '', hint: '', code: '' })).toBe(NETWORK_ERROR_MESSAGE)
+    expect(messageOf({ message: 'Failed to fetch', details: '', hint: '', code: '' })).toBe(NETWORK_ERROR_MESSAGE)
   })
 })

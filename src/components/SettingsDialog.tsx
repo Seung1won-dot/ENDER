@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { getDeviceName, setDeviceName } from '../lib/device'
+import { messageOf } from '../lib/errors'
+import { toast } from '../lib/toast'
 import type { ExpiryPreset } from '../lib/expiry'
 import { ExpirySegment } from './ExpirySegment'
 import { TokenSection } from './TokenSection'
@@ -25,6 +27,24 @@ export function SettingsDialog({ open, onClose, email, expiry, onExpiryChange, o
     if (open && !d.open) d.showModal()
     if (!open && d.open) d.close()
   }, [open])
+
+  const [signingOut, setSigningOut] = useState(false)
+
+  // 서버에 닿지 않아도(오프라인) 이 기기에서는 반드시 로그아웃되게, 실패하면 로컬 세션만이라도 지운다.
+  async function signOut() {
+    setSigningOut(true)
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        await supabase.auth.signOut({ scope: 'local' })
+        toast.info('이 기기에서 로그아웃했어요')
+      }
+    } catch (e) {
+      toast.error(`로그아웃하지 못했어요: ${messageOf(e)}`)
+    } finally {
+      setSigningOut(false)
+    }
+  }
 
   function saveDevice() {
     setDeviceName(device)
@@ -73,7 +93,7 @@ export function SettingsDialog({ open, onClose, email, expiry, onExpiryChange, o
       </section>
 
       <div className="dialog-foot">
-        <button type="button" className="btn btn-ghost" onClick={() => void supabase.auth.signOut()}>
+        <button type="button" className="btn btn-ghost" disabled={signingOut} onClick={() => void signOut()}>
           <Icon name="logout" size={16} />
           로그아웃
         </button>

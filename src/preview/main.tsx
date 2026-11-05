@@ -80,6 +80,7 @@ function Preview() {
   const [query, setQuery] = useState('')
   const [kind, setKind] = useState<KindFilter>('all')
   const [dragging, setDragging] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   const searched = useMemo(() => filterItems(items, query), [items, query])
   const counts = useMemo(() => countByKind(searched), [searched])
@@ -123,6 +124,7 @@ function Preview() {
   }, [])
 
   const reload = () => {
+    setLoadError(null)
     setLoading(true)
     window.setTimeout(() => {
       setItems(fixtures())
@@ -148,6 +150,15 @@ function Preview() {
             </button>
             <button className="btn btn-ghost" onClick={() => setItems([])}>
               비우기
+            </button>
+            <button
+              className="btn btn-ghost"
+              onClick={() => {
+                setItems([])
+                setLoadError('서버에 연결하지 못했어요. 인터넷 연결을 확인해 주세요')
+              }}
+            >
+              불러오기 실패
             </button>
             <button
               className="btn btn-ghost"
@@ -182,7 +193,10 @@ function Preview() {
             <Composer
               expiry={expiry}
               onExpiryChange={setExpiry}
-              onSubmitText={async (t) => add(t)}
+              onSubmitText={async (t) => {
+                add(t)
+                return true
+              }}
               onPickFiles={(files) => toast.info(`${files.length}개 파일 (미리보기)`)}
               busy={false}
             />
@@ -190,6 +204,8 @@ function Preview() {
             <ItemList
               items={visible}
               loading={loading}
+              error={loadError}
+              onRetry={reload}
               filtered={query.trim() !== '' || kind !== 'all'}
               filterKey={`${kind}|${query.trim().toLowerCase()}`}
               canShare={false}

@@ -53,7 +53,7 @@ async function shareItem(item: ItemRow): Promise<void> {
 
 export function ChestScreen({ session }: { session: Session }) {
   const userId = session.user.id
-  const { items, loading, status, reload, upsertLocal, removeLocal } = useItems(userId)
+  const { items, loading, error, status, reload, upsertLocal, removeLocal } = useItems(userId)
   const [expiry, setExpiry] = useStoredExpiry()
   const [busy, setBusy] = useState(false)
   const [query, setQuery] = useState('')
@@ -74,7 +74,10 @@ export function ChestScreen({ session }: { session: Session }) {
   useEffect(() => {
     void cleanupExpired()
       .then((n) => (n > 0 ? reload() : undefined))
-      .catch((e) => console.warn('cleanupExpired', messageOf(e)))
+      // 만료 정리는 다음 로드 때 다시 시도하면 되므로 화면에는 알리지 않는다.
+      .catch((e) => {
+        if (import.meta.env.DEV) console.warn('cleanupExpired', messageOf(e))
+      })
   }, [reload])
 
   const searched = useMemo(() => filterItems(items, query), [items, query])
@@ -88,13 +91,15 @@ export function ChestScreen({ session }: { session: Session }) {
   }, [])
 
   const submitText = useCallback(
-    async (text: string) => {
+    async (text: string): Promise<boolean> => {
       beginWork()
       try {
         const row = await addTextItem({ text, source: getDeviceName(), expiresAt: computeExpiresAt(expiry) })
         upsertLocal(row)
+        return true
       } catch (e) {
         toast.error(`넣지 못했어요: ${messageOf(e)}`)
+        return false
       } finally {
         endWork()
       }
@@ -207,6 +212,8 @@ export function ChestScreen({ session }: { session: Session }) {
         <ItemList
           items={visible}
           loading={loading}
+          error={error}
+          onRetry={() => void reload()}
           filtered={filtered}
           canShare={canShare}
           thumbUrls={thumbUrls}

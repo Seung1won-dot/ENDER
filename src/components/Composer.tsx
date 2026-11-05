@@ -8,7 +8,8 @@ import { Icon } from './Icon'
 interface Props {
   expiry: ExpiryPreset
   onExpiryChange: (p: ExpiryPreset) => void
-  onSubmitText: (text: string) => Promise<void>
+  /** 넣기에 성공하면 true. 실패하면 입력한 글을 지우지 않는다. */
+  onSubmitText: (text: string) => Promise<boolean>
   onPickFiles: (files: File[]) => void
   busy: boolean
 }
@@ -20,8 +21,7 @@ export function Composer({ expiry, onExpiryChange, onSubmitText, onPickFiles, bu
   async function send() {
     const t = text.trim()
     if (!t || busy) return
-    await onSubmitText(t)
-    setText('')
+    if (await onSubmitText(t)) setText('')
   }
 
   function onKey(e: KeyboardEvent<HTMLTextAreaElement>) {

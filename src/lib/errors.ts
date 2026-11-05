@@ -17,7 +17,21 @@ const AUTH_ERROR_MESSAGE_MATCHERS: Array<{ test: (msg: string) => boolean; code:
   { test: (msg) => msg.startsWith('Password should be at least 6 characters'), code: 'weak_password' },
 ]
 
+export const NETWORK_ERROR_MESSAGE = '서버에 연결하지 못했어요. 인터넷 연결을 확인해 주세요'
+
+// 브라우저마다 다른 fetch 실패 문구(Chrome / Firefox / Safari)
+// PostgREST 는 "TypeError: Failed to fetch" 처럼 이름을 앞에 붙여 돌려준다.
+const NETWORK_FAILURE = /^(?:\w*Error: )?(Failed to fetch|NetworkError when attempting to fetch resource\.?|Load failed|Network request failed)$/i
+
+function isNetworkFailure(e: unknown): boolean {
+  if (!e || typeof e !== 'object') return false
+  const { name, message } = e as { name?: unknown; message?: unknown }
+  if (name === 'AuthRetryableFetchError') return true
+  return typeof message === 'string' && NETWORK_FAILURE.test(message.trim())
+}
+
 export function messageOf(e: unknown): string {
+  if (isNetworkFailure(e)) return NETWORK_ERROR_MESSAGE
   if (e && typeof e === 'object') {
     const code = (e as { code?: unknown }).code
     if (typeof code === 'string' && Object.hasOwn(AUTH_ERROR_CODE_MESSAGES, code)) {

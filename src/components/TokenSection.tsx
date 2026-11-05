@@ -20,12 +20,15 @@ export function TokenSection({ open }: { open: boolean }) {
   const [label, setLabel] = useState('아이폰 단축어')
   const [fresh, setFresh] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  /** 목록 상태: 읽는 중 / 읽음 / 실패(이유) */
+  const [loadState, setLoadState] = useState<'loading' | 'ok' | { error: string }>('loading')
 
   async function refresh() {
     try {
       setRows(await listShareTokens())
+      setLoadState('ok')
     } catch (e) {
-      toast.error(messageOf(e))
+      setLoadState({ error: messageOf(e) })
     }
   }
 
@@ -35,6 +38,10 @@ export function TokenSection({ open }: { open: boolean }) {
   }, [open])
 
   async function create() {
+    if (!label.trim()) {
+      toast.error('토큰 이름을 적어 주세요')
+      return
+    }
     setBusy(true)
     try {
       const { token } = await createShareToken(label)
@@ -108,7 +115,16 @@ export function TokenSection({ open }: { open: boolean }) {
             </button>
           </li>
         ))}
-        {rows.length === 0 && <li className="token-item dim small">토큰이 없어요.</li>}
+        {loadState === 'loading' && rows.length === 0 && <li className="token-item dim small">불러오는 중…</li>}
+        {typeof loadState === 'object' && (
+          <li className="token-item dim small" role="alert">
+            <span>목록을 불러오지 못했어요. {loadState.error}</span>
+            <button type="button" className="btn btn-ghost" onClick={() => void refresh()}>
+              다시 시도
+            </button>
+          </li>
+        )}
+        {loadState === 'ok' && rows.length === 0 && <li className="token-item dim small">토큰이 없어요.</li>}
       </ul>
 
       <div className="row-inline">
@@ -118,8 +134,10 @@ export function TokenSection({ open }: { open: boolean }) {
           onChange={(e) => setLabel(e.target.value)}
           placeholder="토큰 이름"
           aria-label="토큰 이름"
+          maxLength={40}
+          onKeyDown={(e) => e.key === 'Enter' && !e.nativeEvent.isComposing && void create()}
         />
-        <button type="button" className="btn btn-primary" disabled={busy} onClick={() => void create()}>
+        <button type="button" className="btn btn-primary" disabled={busy || !label.trim()} onClick={() => void create()}>
           <Icon name="key" size={16} />새 토큰
         </button>
       </div>

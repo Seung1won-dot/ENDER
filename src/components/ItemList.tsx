@@ -10,6 +10,9 @@ import { Icon, Mark } from './Icon'
 interface Props {
   items: ItemRow[]
   loading: boolean
+  /** 처음 불러오기에 실패했을 때의 이유. 목록이 비어 있을 때만 화면에 보인다. */
+  error?: string | null
+  onRetry?: () => void
   /** 검색어나 종류 필터가 걸려 있는지 (비어 있을 때 안내가 달라진다) */
   filtered: boolean
   /** 검색어·종류가 바뀌면 달라지는 값. 바뀌면 목록을 연출 없이 새로 그린다(타이핑마다 수백 행이 움직이지 않게). */
@@ -74,7 +77,18 @@ function EmptyChest() {
   )
 }
 
-export function ItemList({ items, loading, filtered, filterKey, canShare, thumbUrls, onAction, onClearFilters }: Props) {
+export function ItemList({
+  items,
+  loading,
+  error,
+  onRetry,
+  filtered,
+  filterKey,
+  canShare,
+  thumbUrls,
+  onAction,
+  onClearFilters,
+}: Props) {
   // 첫 목록만 위에서부터 차례로(최대 8행, 0.03초 간격). 이후 도착·재배치는 한 행씩.
   const introDone = useRef(false)
   const intro = !loading && !introDone.current
@@ -89,6 +103,22 @@ export function ItemList({ items, loading, filtered, filterKey, canShare, thumbU
   }, [filterKey])
 
   if (loading) return <Skeleton />
+
+  if (items.length === 0 && error) {
+    return (
+      <div className="empty" role="alert">
+        <p className="empty-title">목록을 불러오지 못했어요</p>
+        <p className="empty-sub">{error}</p>
+        {onRetry && (
+          <div className="empty-actions">
+            <button type="button" className="btn btn-ghost" onClick={onRetry}>
+              다시 시도
+            </button>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   if (items.length === 0) {
     if (filtered) {

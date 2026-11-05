@@ -7,9 +7,15 @@ export function useSession(): Session | null | undefined {
 
   useEffect(() => {
     let cancelled = false
-    void supabase.auth.getSession().then(({ data }) => {
-      if (!cancelled) setSession(data.session)
-    })
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (!cancelled) setSession(data.session)
+      })
+      // 저장된 세션을 못 읽으면 로딩 화면에 멈추지 않고 로그인 화면으로.
+      .catch(() => {
+        if (!cancelled) setSession(null)
+      })
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s)
     })
