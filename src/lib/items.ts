@@ -116,6 +116,28 @@ export async function setPinned(id: string, pinned: boolean): Promise<void> {
   if (error) throw error
 }
 
+/** 바꿀 수 있는 필드: 고정, 보관 기간, 텍스트 내용(제목·종류는 내용에서 다시 계산) */
+export type ItemPatch = Partial<Pick<ItemRow, 'pinned' | 'expires_at'>> & { text?: string }
+
+export function buildPatch(patch: ItemPatch): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  if (patch.pinned !== undefined) out.pinned = patch.pinned
+  if (patch.expires_at !== undefined) out.expires_at = patch.expires_at
+  if (patch.text !== undefined) {
+    const p = buildTextPayload({ text: patch.text, source: '', expiresAt: null })
+    out.kind = p.kind
+    out.title = p.title
+    out.content = p.content
+  }
+  return out
+}
+
+export async function updateItem(id: string, patch: ItemPatch): Promise<ItemRow> {
+  const { data, error } = await supabase.from(ITEMS_TABLE).update(buildPatch(patch)).eq('id', id).select('*').single()
+  if (error) throw error
+  return data as ItemRow
+}
+
 export async function getSignedUrl(path: string): Promise<string> {
   const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, SIGNED_URL_TTL)
   if (error) throw error

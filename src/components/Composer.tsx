@@ -1,8 +1,8 @@
 import { useRef, useState, type KeyboardEvent } from 'react'
 import { m } from 'motion/react'
-import type { ExpiryPreset } from '../lib/expiry'
+import { EXPIRY_PRESETS, type ExpiryPreset } from '../lib/expiry'
+import { PASTE_KEY } from '../lib/keys'
 import { TAP_SCALE } from '../lib/motion'
-import { ExpirySegment } from './ExpirySegment'
 import { Icon } from './Icon'
 
 interface Props {
@@ -16,12 +16,20 @@ interface Props {
 
 export function Composer({ expiry, onExpiryChange, onSubmitText, onPickFiles, busy }: Props) {
   const [text, setText] = useState('')
+  const [sending, setSending] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
+  const area = useRef<HTMLTextAreaElement>(null)
 
   async function send() {
     const t = text.trim()
-    if (!t || busy) return
-    if (await onSubmitText(t)) setText('')
+    if (!t || sending) return
+    setSending(true)
+    const ok = await onSubmitText(t)
+    setSending(false)
+    if (ok) {
+      setText('')
+      area.current?.focus()
+    }
   }
 
   function onKey(e: KeyboardEvent<HTMLTextAreaElement>) {
@@ -29,25 +37,32 @@ export function Composer({ expiry, onExpiryChange, onSubmitText, onPickFiles, bu
       e.preventDefault()
       void send()
     }
+    if (e.key === 'Escape') area.current?.blur()
   }
 
+  const canSend = text.trim() !== '' && !sending
+
   return (
-    <div className="composer" aria-busy={busy}>
+    <div className="composer" aria-busy={busy || sending}>
       <label className="sr-only" htmlFor="composer-input">
-        텍스트나 링크
+        넣을 글이나 링크
       </label>
       <textarea
         id="composer-input"
-        rows={2}
-        // 붙여넣기·끌어다 놓기 안내는 빈 상자 화면이 맡고, 자리표시자는 좁은 화면에서도 두 줄 안에 들게 짧게.
-        placeholder="텍스트나 링크를 적고 Enter · 줄바꿈은 Shift+Enter"
+        ref={area}
+        rows={1}
+        placeholder="메모나 링크를 적고 Enter"
+        title={`파일은 창에 끌어다 놓거나 ${PASTE_KEY} 로 붙여넣어도 돼요`}
         value={text}
-        onChange={(e) => setText(e.target.value)}
+        onChange={(e) => {
+          setText(e.target.value)
+          const el = e.target
+          el.style.height = 'auto'
+          el.style.height = `${Math.min(el.scrollHeight, 240)}px`
+        }}
         onKeyDown={onKey}
       />
       <div className="composer-bar">
-        <ExpirySegment name="composer-expiry" value={expiry} onChange={onExpiryChange} disabled={busy} />
-        <span className="spacer" />
         <input
           ref={fileInput}
           type="file"
@@ -59,20 +74,37 @@ export function Composer({ expiry, onExpiryChange, onSubmitText, onPickFiles, bu
             if (files.length) onPickFiles(files)
           }}
         />
-        <button className="btn btn-ghost" type="button" disabled={busy} onClick={() => fileInput.current?.click()}>
+        <button className="btn btn-quiet" type="button" onClick={() => fileInput.current?.click()} title="파일 선택">
           <Icon name="paperclip" size={16} />
-          파일 선택
+          <span className="hide-sm">파일</span>
         </button>
+        <label className="select-wrap" title="새로 넣는 항목의 보관 기간">
+          <Icon name="clock" size={14} />
+          <span className="sr-only">보관 기간</span>
+          <select value={expiry} onChange={(e) => onExpiryChange(e.target.value as ExpiryPreset)}>
+            {EXPIRY_PRESETS.map((p) => (
+              <option key={p.value} value={p.value}>
+                {p.value === 'never' ? '영구 보관' : `${p.label} 보관`}
+              </option>
+            ))}
+          </select>
+        </label>
+        <span className="spacer" />
+        {busy && (
+          <span className="composer-busy" role="status">
+            <span className="spinner" aria-hidden="true" /> 올리는 중
+          </span>
+        )}
         <m.button
           className="btn btn-primary"
           type="button"
-          disabled={busy || !text.trim()}
+          disabled={!canSend}
           onClick={() => void send()}
           title="Enter"
-          whileTap={busy || !text.trim() ? undefined : { scale: TAP_SCALE }}
+          whileTap={canSend ? { scale: TAP_SCALE } : undefined}
         >
-          {busy ? <span className="spinner" aria-hidden="true" /> : <Icon name="enter" size={16} />}
-          {busy ? '넣는 중…' : '넣기'}
+          {sending ? <span className="spinner" aria-hidden="true" /> : <Icon name="enter" size={15} />}
+          넣기
         </m.button>
       </div>
     </div>

@@ -5,7 +5,7 @@ const BLOCKED_EXT = new Set(['exe', 'msi', 'bat', 'cmd', 'com', 'scr', 'vbs', 'j
 const SINGLE_URL = /^https?:\/\/\S+$/i
 const HOUR = 3600_000
 const DAY = 24 * HOUR
-const PRESET_MS: Record<string, number> = { '1h': HOUR, '1d': DAY, '7d': 7 * DAY }
+const PRESET_MS: Record<string, number> = { '1h': HOUR, '1d': DAY, '7d': 7 * DAY, '30d': 30 * DAY }
 
 export function isSafeHttpUrl(s: string): boolean {
   try {
@@ -54,10 +54,10 @@ export function sanitizeFileName(name: string): string {
   return /[A-Za-z0-9]/.test(trimmed) ? trimmed : 'file'
 }
 
-/** 'never' 만 영구. 누락·미지원 값은 앱의 DEFAULT_EXPIRY 와 같은 7일. */
+/** 'never' 만 영구. 누락·미지원 값은 앱의 DEFAULT_EXPIRY 와 같은 30일. */
 export function computeExpiresAt(preset: string | null | undefined, now = new Date()): string | null {
   if (preset === 'never') return null
-  const ms = PRESET_MS[preset ?? ''] ?? PRESET_MS['7d']
+  const ms = PRESET_MS[preset ?? ''] ?? PRESET_MS['30d']
   return new Date(now.getTime() + ms).toISOString()
 }
 

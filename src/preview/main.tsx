@@ -1,6 +1,6 @@
 // 개발 서버 전용 화면 미리보기. Supabase 로그인 없이 가짜 항목으로 상자 화면·빈 상자·로그인 화면을 본다.
 // 실행: npm run dev → http://localhost:5173/preview.html  (vite build 는 index.html 만 묶으므로 배포에 포함되지 않는다)
-import React, { Suspense, lazy, useCallback, useMemo, useState } from 'react'
+import React, { Suspense, lazy, useMemo, useState } from 'react'
 import ReactDOM from 'react-dom/client'
 import { LazyMotion, MotionConfig } from 'motion/react'
 import '../styles/global.css'
@@ -8,17 +8,13 @@ import type { ItemRow } from '../lib/items'
 import type { LiveStatus } from '../hooks/useItems'
 import type { ExpiryPreset } from '../lib/expiry'
 import { computeExpiresAt } from '../lib/expiry'
-import { detectKind, linkTitle } from '../lib/detect'
-import { countByKind, filterByKind, filterItems, mergeItem, withoutItem, sortItems, type KindFilter } from '../lib/itemsState'
+import { buildPatch, buildTextPayload } from '../lib/items'
+import { mergeItem, withoutItem, sortItems } from '../lib/itemsState'
+import type { ChestApi } from '../lib/api'
 import { toast } from '../lib/toast'
 import { T_BASE, loadMotionFeatures } from '../lib/motion'
-import { TopBar } from '../components/TopBar'
-import { Composer } from '../components/Composer'
-import { FilterChips } from '../components/FilterChips'
-import { ItemList } from '../components/ItemList'
-import { DropOverlay } from '../components/DropOverlay'
+import { ChestView } from '../components/ChestView'
 import { ToastHost } from '../components/ToastHost'
-import type { ItemAction } from '../components/ItemRowView'
 
 // 로그인 화면은 supabase 클라이언트를 import 하므로 .env(또는 가짜 VITE_SUPABASE_* 값)가 있을 때만 불러온다.
 const AuthScreen = lazy(() => import('../components/AuthScreen').then((m) => ({ default: m.AuthScreen })))
@@ -54,18 +50,49 @@ function row(p: Partial<ItemRow>): ItemRow {
   }
 }
 
+const MEMO_TXT = `# 실험 로그 2026-11-05
+
+epoch 12  loss 0.4132  val_acc 0.8811
+epoch 13  loss 0.4021  val_acc 0.8840
+epoch 14  loss 0.3987  val_acc 0.8852
+
+다음: lr 3e-4 -> 1e-4 로 낮춰서 다시
+`
+// 아주 작은 1쪽짜리 PDF
+const PDF_SRC = `%PDF-1.4
+1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj
+2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj
+3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 420 300]/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>endobj
+4 0 obj<</Length 58>>stream
+BT /F1 22 Tf 40 200 Td (Interim report v3 - preview) Tj ET
+endstream endobj
+5 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj
+trailer<</Root 1 0 R>>
+%%EOF`
+
+const BLOBS: Record<string, string> = {
+  'demo/photo.png': THUMB,
+  'demo/report.pdf': URL.createObjectURL(new Blob([PDF_SRC], { type: 'application/pdf' })),
+  'demo/train.log': URL.createObjectURL(new Blob([MEMO_TXT], { type: 'text/plain' })),
+  'demo/archive.zip': URL.createObjectURL(new Blob(['zip'], { type: 'application/zip' })),
+}
+
 function fixtures(): ItemRow[] {
+  seq = 0
   return sortItems([
     row({ kind: 'text', content: 'ssh eclab@192.168.0.42 -p 2222', pinned: true, expires_at: null, source: '맥미니' }),
     row({ kind: 'link', title: 'Supabase Realtime 문서', content: 'https://supabase.com/docs/guides/realtime', source: 'iPhone' }),
     row({
       kind: 'text',
       content:
-        '회의 메모\n- 데이터셋 경로 정리\n- 다음 주까지 학습 로그 공유\n- GPU 예약 확인\n- 발표 자료 초안\n- 참고 논문 3편 읽기\n- 실험 결과 표 업데이트\n- 코드 리뷰 요청\n- 백업 확인',
+        '회의 메모\n- 데이터셋 경로 정리\n- 다음 주까지 학습 로그 공유\n- GPU 예약 확인\n- 발표 자료 초안\n- 참고 논문 3편 읽기',
       expires_at: later(40),
     }),
-    row({ kind: 'file', file_path: 'demo/photo.png', file_name: 'IMG_2041.png', file_size: 1_843_200, mime_type: 'image/png', source: 'iPhone' }),
-    row({ kind: 'file', file_path: 'demo/report.pdf', file_name: '중간보고서_v3.pdf', file_size: 4_521_984, mime_type: 'application/pdf' }),
+    row({ kind: 'file', file_path: 'demo/photo.png', file_name: 'IMG_2041.png', file_size: 1_843_200, mime_type: 'image/svg+xml', source: 'iPhone' }),
+    row({ kind: 'file', file_path: 'demo/report.pdf', file_name: '중간보고서_v3.pdf', file_size: 4_521_984, mime_type: 'application/pdf', created_at: ago(60 * 26) }),
+    row({ kind: 'file', file_path: 'demo/train.log', file_name: 'train.log', file_size: 18_204, mime_type: 'text/plain', source: '맥미니', created_at: ago(60 * 27) }),
+    row({ kind: 'link', title: 'github.com/Seung1won-dot/ENDER', content: 'https://github.com/Seung1won-dot/ENDER', created_at: ago(60 * 24 * 3), expires_at: null }),
+    row({ kind: 'file', file_path: 'demo/archive.zip', file_name: 'dataset_sample.zip', file_size: 23_812_331, mime_type: 'application/zip', created_at: ago(60 * 24 * 4) }),
   ])
 }
 
@@ -77,51 +104,64 @@ function Preview() {
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState<LiveStatus>('live')
   const [expiry, setExpiry] = useState<ExpiryPreset>('7d')
-  const [query, setQuery] = useState('')
-  const [kind, setKind] = useState<KindFilter>('all')
-  const [dragging, setDragging] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
 
-  const searched = useMemo(() => filterItems(items, query), [items, query])
-  const counts = useMemo(() => countByKind(searched), [searched])
-  const visible = useMemo(() => filterByKind(searched, kind), [searched, kind])
-
-  const add = useCallback(
-    (text: string, source = '이 브라우저') => {
-      const k = detectKind(text)
-      setItems((prev) =>
-        mergeItem(
-          prev,
-          row({
-            kind: k,
-            content: text,
-            title: k === 'link' ? linkTitle(text) : null,
-            source,
-            created_at: new Date().toISOString(),
-            expires_at: computeExpiresAt(expiry),
-          }),
-        ),
-      )
-    },
-    [expiry],
-  )
-
-  const onAction = useCallback(async (action: ItemAction, item: ItemRow): Promise<boolean> => {
-    switch (action) {
-      case 'copy':
-        await navigator.clipboard?.writeText(item.content ?? '').catch(() => undefined)
-        return true
-      case 'pin':
-        setItems((prev) => mergeItem(prev, { ...item, pinned: !item.pinned }))
-        return true
-      case 'delete':
+  const api = useMemo<ChestApi>(() => {
+    const wait = () => new Promise((r) => setTimeout(r, 250))
+    return {
+      async addText(text, o) {
+        await wait()
+        const p = buildTextPayload({ text, source: o.source, expiresAt: o.expiresAt })
+        return row({ ...p, created_at: new Date().toISOString() })
+      },
+      async addFile(file, o) {
+        await new Promise((r) => setTimeout(r, 900))
+        const path = `local/${crypto.randomUUID()}`
+        BLOBS[path] = URL.createObjectURL(file)
+        return row({
+          kind: 'file',
+          title: file.name,
+          file_path: path,
+          file_name: file.name,
+          file_size: file.size,
+          mime_type: file.type || 'application/octet-stream',
+          source: o.source,
+          expires_at: o.expiresAt,
+          created_at: new Date().toISOString(),
+        })
+      },
+      async update(id, patch) {
+        await wait()
+        let out: ItemRow | undefined
+        setItems((prev) => {
+          const cur = prev.find((i) => i.id === id)
+          if (!cur) return prev
+          out = { ...cur, ...(buildPatch(patch) as Partial<ItemRow>) }
+          return mergeItem(prev, out)
+        })
+        await wait()
+        if (!out) throw new Error('항목이 없어요')
+        return out
+      },
+      async remove(item) {
         setItems((prev) => withoutItem(prev, item.id))
-        return true
-      default:
-        toast.info(`미리보기: ${action}`)
-        return true
+      },
+      async viewUrl(path) {
+        const u = BLOBS[path]
+        if (!u) throw new Error('파일이 없어요')
+        return u
+      },
+      async downloadUrl(path) {
+        return this.viewUrl(path)
+      },
     }
   }, [])
+
+  const arrive = () => {
+    const text = ARRIVALS[seq % ARRIVALS.length] ?? '새 항목'
+    const p = buildTextPayload({ text, source: 'iPhone', expiresAt: computeExpiresAt(expiry) })
+    setItems((prev) => mergeItem(prev, row({ ...p, created_at: new Date().toISOString() })))
+  }
 
   const reload = () => {
     setLoadError(null)
@@ -134,100 +174,79 @@ function Preview() {
 
   return (
     <LazyMotion features={loadMotionFeatures} strict>
-    <MotionConfig reducedMotion="user" transition={T_BASE}>
-      <nav className="preview-bar" aria-label="미리보기 조작">
-        <strong>미리보기</strong>
-        <button className="btn btn-ghost" onClick={() => setScreen(screen === 'chest' ? 'auth' : 'chest')}>
-          {screen === 'chest' ? '로그인 화면' : '상자 화면'}
-        </button>
-        {screen === 'chest' && (
-          <>
-            <button className="btn btn-ghost" onClick={() => add(ARRIVALS[seq % ARRIVALS.length] ?? '새 항목', 'iPhone')}>
-              다른 기기에서 도착
-            </button>
-            <button className="btn btn-ghost" onClick={reload}>
-              다시 불러오기
-            </button>
-            <button className="btn btn-ghost" onClick={() => setItems([])}>
-              비우기
-            </button>
-            <button
-              className="btn btn-ghost"
-              onClick={() => {
-                setItems([])
-                setLoadError('서버에 연결하지 못했어요. 인터넷 연결을 확인해 주세요')
-              }}
-            >
-              불러오기 실패
-            </button>
-            <button
-              className="btn btn-ghost"
-              onClick={() => setStatus((s) => (s === 'live' ? 'connecting' : s === 'connecting' ? 'offline' : 'live'))}
-            >
-              연결 상태
-            </button>
-            <button className="btn btn-ghost" onClick={() => setDragging((d) => !d)}>
-              드롭 화면
-            </button>
-            <button className="btn btn-ghost" onClick={() => toast.error('업로드 실패: 네트워크 오류')}>
-              오류 토스트
-            </button>
-          </>
-        )}
-      </nav>
+      <MotionConfig reducedMotion="user" transition={T_BASE}>
+        <nav className="preview-bar" aria-label="미리보기 조작">
+          <strong>미리보기</strong>
+          <button className="btn btn-ghost" onClick={() => setScreen(screen === 'chest' ? 'auth' : 'chest')}>
+            {screen === 'chest' ? '로그인 화면' : '상자 화면'}
+          </button>
+          {screen === 'chest' && (
+            <>
+              <button className="btn btn-ghost" onClick={arrive}>
+                다른 기기에서 도착
+              </button>
+              <button className="btn btn-ghost" onClick={reload}>
+                다시 불러오기
+              </button>
+              <button className="btn btn-ghost" onClick={() => setItems([])}>
+                비우기
+              </button>
+              <button
+                className="btn btn-ghost"
+                onClick={() => {
+                  setItems([])
+                  setLoadError('서버에 연결하지 못했어요. 인터넷 연결을 확인해 주세요')
+                }}
+              >
+                불러오기 실패
+              </button>
+              <button
+                className="btn btn-ghost"
+                onClick={() => setStatus((s) => (s === 'live' ? 'connecting' : s === 'connecting' ? 'offline' : 'live'))}
+              >
+                연결 상태
+              </button>
+              <button className="btn btn-ghost" onClick={() => toast.error('업로드 실패: 네트워크 오류')}>
+                오류 토스트
+              </button>
+            </>
+          )}
+        </nav>
 
-      {screen === 'auth' ? (
-        hasEnv ? (
-          <Suspense fallback={null}>
-            <AuthScreen />
-          </Suspense>
+        {screen === 'auth' ? (
+          hasEnv ? (
+            <Suspense fallback={null}>
+              <AuthScreen />
+            </Suspense>
+          ) : (
+            <p style={{ padding: 24 }}>
+              로그인 화면은 VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY 가 있어야 열려요. 가짜 값으로도 됩니다.
+            </p>
+          )
         ) : (
-          <p className="screen">
-            로그인 화면은 VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY 가 있어야 열려요. 가짜 값으로도 됩니다.
-          </p>
-        )
-      ) : (
-        <>
-          <TopBar status={status} query={query} onQueryChange={setQuery} onOpenSettings={() => toast.info('설정은 실제 앱에서')} />
-          <main className="screen">
-            <Composer
-              expiry={expiry}
-              onExpiryChange={setExpiry}
-              onSubmitText={async (t) => {
-                add(t)
-                return true
-              }}
-              onPickFiles={(files) => toast.info(`${files.length}개 파일 (미리보기)`)}
-              busy={false}
-            />
-            <FilterChips value={kind} counts={counts} onChange={setKind} />
-            <ItemList
-              items={visible}
-              loading={loading}
-              error={loadError}
-              onRetry={reload}
-              filtered={query.trim() !== '' || kind !== 'all'}
-              filterKey={`${kind}|${query.trim().toLowerCase()}`}
-              canShare={false}
-              thumbUrls={{ 'demo/photo.png': THUMB }}
-              onAction={onAction}
-              onClearFilters={() => {
-                setQuery('')
-                setKind('all')
-              }}
-            />
-          </main>
-          <DropOverlay active={dragging} />
-        </>
-      )}
-      <ToastHost />
-    </MotionConfig>
+          <ChestView
+            items={items}
+            loading={loading}
+            error={loadError}
+            status={status}
+            reload={reload}
+            upsertLocal={(r) => setItems((prev) => mergeItem(prev, r))}
+            removeLocal={(id) => setItems((prev) => withoutItem(prev, id))}
+            api={api}
+            email="me@eclab.kr"
+            expiry={expiry}
+            onExpiryChange={setExpiry}
+            onOpenSettings={() => toast.info('설정은 실제 앱에서 열려요')}
+          />
+        )}
+        <ToastHost />
+      </MotionConfig>
     </LazyMotion>
   )
 }
 
 const style = document.createElement('style')
-style.textContent = `.preview-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 12px;border-bottom:1px dashed var(--border-strong);font-size:12px;color:var(--text-dim)}.preview-bar .btn{height:28px;padding:0 10px;font-size:12px}`
+style.textContent = `.preview-bar{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);z-index:80;display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 10px;border:1px dashed var(--border-strong);border-radius:10px;background:var(--bg-elev);font-size:12px;color:var(--text-dim);max-width:calc(100vw - 24px)}.preview-bar .btn{height:26px;padding:0 9px;font-size:12px}`
 document.head.appendChild(style)
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

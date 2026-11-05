@@ -7,6 +7,7 @@ import type { ExpiryPreset } from '../lib/expiry'
 import { ExpirySegment } from './ExpirySegment'
 import { TokenSection } from './TokenSection'
 import { Icon } from './Icon'
+import { notifySupported, readNotifyPref, writeNotifyPref } from '../hooks/useNotify'
 
 interface Props {
   open: boolean
@@ -29,6 +30,20 @@ export function SettingsDialog({ open, onClose, email, expiry, onExpiryChange, o
   }, [open])
 
   const [signingOut, setSigningOut] = useState(false)
+  const [notify, setNotify] = useState(readNotifyPref)
+
+  async function toggleNotify(on: boolean) {
+    if (on && notifySupported() && Notification.permission !== 'granted') {
+      const res = await Notification.requestPermission()
+      if (res !== 'granted') {
+        toast.error('브라우저에서 알림이 막혀 있어요. 주소창의 사이트 설정에서 허용해 주세요.')
+        return
+      }
+    }
+    writeNotifyPref(on)
+    setNotify(on)
+    if (on) toast.info('다른 기기에서 넣으면 알려 드릴게요')
+  }
 
   // 서버에 닿지 않아도(오프라인) 이 기기에서는 반드시 로그아웃되게, 실패하면 로컬 세션만이라도 지운다.
   async function signOut() {
@@ -82,11 +97,29 @@ export function SettingsDialog({ open, onClose, email, expiry, onExpiryChange, o
 
       <section className="dialog-section">
         <div className="field">
-          <span className="field-label">기본 만료</span>
-          <ExpirySegment name="settings-expiry" value={expiry} onChange={onExpiryChange} label="기본 만료" showLabel={false} />
-          <span className="field-help">입력창의 만료 선택에도 이 값이 기본으로 들어가요.</span>
+          <span className="field-label">기본 보관 기간</span>
+          <ExpirySegment name="settings-expiry" value={expiry} onChange={onExpiryChange} label="기본 보관 기간" showLabel={false} />
+          <span className="field-help">새로 넣는 항목에 붙어요. 항목마다 미리보기에서 따로 바꿀 수 있어요.</span>
         </div>
       </section>
+
+      {notifySupported() && (
+        <section className="dialog-section">
+          <label className="switch-row">
+            <span className="switch-text">
+              <span className="field-label">새 항목 알림</span>
+              <span className="field-help">창을 옆에 띄워 두면, 다른 기기에서 넣었을 때 데스크톱 알림이 와요.</span>
+            </span>
+            <input
+              type="checkbox"
+              role="switch"
+              className="switch"
+              checked={notify}
+              onChange={(e) => void toggleNotify(e.target.checked)}
+            />
+          </label>
+        </section>
+      )}
 
       <section className="dialog-section">
         <TokenSection open={open} />

@@ -1,13 +1,14 @@
-export type ExpiryPreset = '1h' | '1d' | '7d' | 'never'
+export type ExpiryPreset = '1h' | '1d' | '7d' | '30d' | 'never'
 
 export const EXPIRY_PRESETS: ReadonlyArray<{ value: ExpiryPreset; label: string }> = [
   { value: '1h', label: '1시간' },
   { value: '1d', label: '1일' },
   { value: '7d', label: '7일' },
+  { value: '30d', label: '30일' },
   { value: 'never', label: '영구' },
 ]
 
-export const DEFAULT_EXPIRY: ExpiryPreset = '7d'
+export const DEFAULT_EXPIRY: ExpiryPreset = '30d'
 
 const HOUR = 60 * 60 * 1000
 const DAY = 24 * HOUR
@@ -16,10 +17,11 @@ const PRESET_MS: Record<Exclude<ExpiryPreset, 'never'>, number> = {
   '1h': HOUR,
   '1d': DAY,
   '7d': 7 * DAY,
+  '30d': 30 * DAY,
 }
 
 export function isExpiryPreset(v: unknown): v is ExpiryPreset {
-  return v === '1h' || v === '1d' || v === '7d' || v === 'never'
+  return v === '1h' || v === '1d' || v === '7d' || v === '30d' || v === 'never'
 }
 
 export function computeExpiresAt(preset: ExpiryPreset, now: Date = new Date()): string | null {

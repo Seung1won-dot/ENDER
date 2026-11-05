@@ -25,6 +25,16 @@ export type IconName =
   | 'key'
   | 'clipboard'
   | 'upload'
+  | 'inbox'
+  | 'monitor'
+  | 'video'
+  | 'music'
+  | 'edit'
+  | 'bell'
+  | 'back'
+  | 'clock'
+  | 'select'
+  | 'maximize'
 
 const PATHS: Record<IconName, JSX.Element> = {
   search: (
@@ -160,6 +170,61 @@ const PATHS: Record<IconName, JSX.Element> = {
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
       <path d="m17 8-5-5-5 5" />
       <path d="M12 3v12" />
+    </>
+  ),
+  inbox: (
+    <>
+      <path d="M22 12h-6l-2 3h-4l-2-3H2" />
+      <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z" />
+    </>
+  ),
+  monitor: (
+    <>
+      <rect x="2" y="3" width="20" height="14" rx="2" />
+      <path d="M8 21h8M12 17v4" />
+    </>
+  ),
+  video: (
+    <>
+      <rect x="2" y="5" width="14" height="14" rx="2" />
+      <path d="m22 8-6 4 6 4V8Z" />
+    </>
+  ),
+  music: (
+    <>
+      <path d="M9 18V5l12-2v13" />
+      <circle cx="6" cy="18" r="3" />
+      <circle cx="18" cy="16" r="3" />
+    </>
+  ),
+  edit: (
+    <>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </>
+  ),
+  bell: (
+    <>
+      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+    </>
+  ),
+  back: <path d="m15 18-6-6 6-6" />,
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </>
+  ),
+  select: (
+    <>
+      <rect x="3" y="3" width="18" height="18" rx="4" />
+      <path d="m8 12 3 3 5-6" />
+    </>
+  ),
+  maximize: (
+    <>
+      <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
     </>
   ),
 }

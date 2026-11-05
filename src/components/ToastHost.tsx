@@ -21,7 +21,7 @@ export function ToastHost() {
   useEffect(() => {
     return subscribeToasts((t) => {
       setToasts((prev) => [...prev, t])
-      window.setTimeout(() => setToasts((prev) => prev.filter((x) => x.id !== t.id)), TTL_MS)
+      window.setTimeout(() => setToasts((prev) => prev.filter((x) => x.id !== t.id)), t.ttl ?? TTL_MS)
     })
   }, [])
 
@@ -52,7 +52,19 @@ export function ToastHost() {
             transition={{ duration: 0.2, ease: EASE, layout: T_LAYOUT }}
           >
             <Icon name={t.level === 'error' ? 'alert' : 'check'} size={18} />
-            {t.text}
+            <span className="toast-text">{t.text}</span>
+            {t.action && (
+              <button
+                type="button"
+                className="toast-action"
+                onClick={() => {
+                  t.action?.run()
+                  setToasts((prev) => prev.filter((x) => x.id !== t.id))
+                }}
+              >
+                {t.action.label}
+              </button>
+            )}
           </m.div>
         ))}
       </AnimatePresence>

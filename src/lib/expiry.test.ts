@@ -15,9 +15,9 @@ describe('computeExpiresAt', () => {
 })
 
 describe('presets', () => {
-  it('기본값은 7d 이고 프리셋 목록에 있다', () => {
-    expect(DEFAULT_EXPIRY).toBe('7d')
-    expect(EXPIRY_PRESETS.map((p) => p.value)).toEqual(['1h', '1d', '7d', 'never'])
+  it('기본값은 30d 이고 프리셋 목록에 있다', () => {
+    expect(DEFAULT_EXPIRY).toBe('30d')
+    expect(EXPIRY_PRESETS.map((p) => p.value)).toEqual(['1h', '1d', '7d', '30d', 'never'])
   })
   it('isExpiryPreset', () => {
     expect(isExpiryPreset('1h')).toBe(true)

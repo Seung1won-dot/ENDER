@@ -33,24 +33,24 @@ colors:
   backdrop-light: "rgba(27, 26, 36, 0.45)"
 typography:
   headline:
-    fontFamily: "IBM Plex Sans KR, Apple SD Gothic Neo, Malgun Gothic, sans-serif"
+    fontFamily: "Pretendard Variable, Pretendard, Apple SD Gothic Neo, Malgun Gothic, sans-serif"
     fontSize: "26px"
     fontWeight: 600
     lineHeight: 1.2
     letterSpacing: "-0.02em"
   title:
-    fontFamily: "IBM Plex Sans KR, Apple SD Gothic Neo, Malgun Gothic, sans-serif"
+    fontFamily: "Pretendard Variable, Pretendard, Apple SD Gothic Neo, Malgun Gothic, sans-serif"
     fontSize: "16px"
     fontWeight: 600
     lineHeight: 1.3
     letterSpacing: "-0.01em"
   body:
-    fontFamily: "IBM Plex Sans KR, Apple SD Gothic Neo, Malgun Gothic, sans-serif"
+    fontFamily: "Pretendard Variable, Pretendard, Apple SD Gothic Neo, Malgun Gothic, sans-serif"
     fontSize: "15px"
     fontWeight: 400
     lineHeight: 1.55
   label:
-    fontFamily: "IBM Plex Sans KR, Apple SD Gothic Neo, Malgun Gothic, sans-serif"
+    fontFamily: "Pretendard Variable, Pretendard, Apple SD Gothic Neo, Malgun Gothic, sans-serif"
     fontSize: "13px"
     fontWeight: 500
     lineHeight: 1.4
@@ -134,7 +134,7 @@ components:
 - 흑요석 다크 기본, 시스템 설정에 따라 스톤 라이트 자동.
 - 강조색은 엔더 청록 하나. 화면의 10% 이하.
 - 카드 안의 카드 없음. 표면은 평평하고 1px 이음선으로 나눈다.
-- 본문은 IBM Plex Sans KR, 숫자·코드성 데이터는 IBM Plex Mono.
+- 본문은 Pretendard, 숫자·코드성 데이터는 IBM Plex Mono.
 - 움직임은 상태 변화에만, 140~240ms, 튕김 없음. 반복 동작은 Motion, 첫 화면 한 장면만 Anime.js.
 
 ## Colors
@@ -169,7 +169,7 @@ components:
 ## Typography
 
 **Display Font:** 없음. 제목도 본문 글꼴의 굵기 차이로만.
-**Body Font:** IBM Plex Sans KR (fallback: Apple SD Gothic Neo, Malgun Gothic, sans-serif)
+**Body Font:** Pretendard Variable (fallback: Apple SD Gothic Neo, Malgun Gothic, sans-serif)
 **Label/Mono Font:** IBM Plex Mono (fallback: ui-monospace, Menlo, Consolas)
 
 **Character:** Plex 는 IBM 의 공학 도구 글꼴이다. 무뚝뚝하지 않지만 꾸미지도 않는다. 한글은 Sandoll 이 그린 KR 판이라 한글·라틴·숫자가 한 가족으로 보인다. Plex Mono 는 시각·용량·토큰 같은 데이터를 표처럼 정렬해 준다. Google Fonts 에서 받고, 서비스워커가 캐시한다.
@@ -294,7 +294,7 @@ components:
 - **Do** 새 화면을 만들기 전에 이 파일을 읽고, 끝나면 `npx --yes impeccable@latest detect src` 로 검사한다.
 
 ### Don't:
-- **Don't** Inter, Roboto, 시스템 기본 글꼴을 쓰지 않는다. 글꼴은 IBM Plex Sans KR 과 IBM Plex Mono 뿐.
+- **Don't** Inter, Roboto, 시스템 기본 글꼴을 쓰지 않는다. 글꼴은 Pretendard 와 IBM Plex Mono 뿐.
 - **Don't** 보라·파랑 계열 그라데이션 배경을 쓰지 않는다. 그라데이션 자체를 쓰지 않는다.
 - **Don't** 카드 안에 카드를 넣지 않는다. 목록 항목은 카드가 아니라 행이다.
 - **Don't** 색 있는 배경 위에 회색 본문을 올리지 않는다.

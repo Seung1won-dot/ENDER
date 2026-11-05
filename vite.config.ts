@@ -26,8 +26,18 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
         navigateFallbackDenylist: [/^\/functions\//, /^\/auth\//],
-        // Google Fonts(IBM Plex Sans KR · Plex Mono)를 오프라인에서도 쓰기 위해 캐시
+        // 글꼴(Pretendard · IBM Plex Mono)을 오프라인에서도 쓰기 위해 캐시
         runtimeCaching: [
+          {
+            // 본문 글꼴 Pretendard (jsdelivr). 판(v1.3.9)이 고정이라 한 번 받으면 오래 둔다.
+            urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/gh\/orioncactus\/pretendard@.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'pretendard',
+              expiration: { maxEntries: 120, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'StaleWhileRevalidate',
