@@ -166,3 +166,7 @@ docs/               기획서 · 스펙 · ADR · iOS 단축어 · 스크린샷
 - [화면 기준 DESIGN.md](DESIGN.md) — 색·글꼴·구성·[모션 규칙](DESIGN.md#motion). 화면을 고칠 때 먼저 읽습니다.
 - [제품 기준 PRODUCT.md](PRODUCT.md)
 - [진행 기록 PROGRESS.md](docs/PROGRESS.md)
+
+## 라이선스
+
+[MIT License](LICENSE)
