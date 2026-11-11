@@ -15,6 +15,9 @@ import { toast } from '../lib/toast'
 import { T_BASE, loadMotionFeatures } from '../lib/motion'
 import { ChestView } from '../components/ChestView'
 import { ToastHost } from '../components/ToastHost'
+import { initTheme } from '../lib/theme'
+
+initTheme()
 
 // 로그인 화면은 supabase 클라이언트를 import 하므로 .env(또는 가짜 VITE_SUPABASE_* 값)가 있을 때만 불러온다.
 const AuthScreen = lazy(() => import('../components/AuthScreen').then((m) => ({ default: m.AuthScreen })))

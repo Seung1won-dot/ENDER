@@ -22,6 +22,7 @@ import { DropOverlay } from './DropOverlay'
 import { PreviewPane } from './PreviewPane'
 import { SearchBar } from './SearchBar'
 import { Sidebar, StatusBadge, VIEWS, type View } from './Sidebar'
+import { ThemeToggle } from './ThemeToggle'
 import type { ItemAction } from './ItemRowView'
 import { Icon, Mark } from './Icon'
 
@@ -538,6 +539,7 @@ export function ChestView({ items, loading, error, status, reload, upsertLocal, 
           <span className="side-name">Ender Chest</span>
           <StatusBadge status={status} />
           <span className="spacer" />
+          <ThemeToggle />
           <button type="button" className="icon-btn" aria-label="설정" onClick={onOpenSettings}>
             <Icon name="sliders" size={18} />
           </button>

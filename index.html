@@ -8,12 +8,21 @@
     <meta property="og:title" content="Ender Chest" />
     <meta property="og:description" content="어디서 열어도 같은 내용물이 보이는 나만의 상자" />
     <meta name="twitter:card" content="summary" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#15161d" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f3f2f7" />
+    <meta name="theme-color" content="#f4f6fc" />
+    <script>
+      // 첫 그리기 전에 테마를 정한다 (src/lib/theme.ts 와 같은 규칙: 기본은 밝게)
+      try {
+        var t = localStorage.getItem('ender.theme') || 'light'
+        if (t === 'system') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        document.documentElement.dataset.theme = t === 'dark' ? 'dark' : 'light'
+      } catch (e) {
+        document.documentElement.dataset.theme = 'light'
+      }
+    </script>
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Ender" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />

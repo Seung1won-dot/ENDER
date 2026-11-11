@@ -107,6 +107,18 @@ export function Composer({ expiry, onExpiryChange, onSubmitText, onPickFiles, bu
           넣기
         </m.button>
       </div>
+      {/* 넣는 방법 세 가지를 늘 보이게 (터치 기기에서는 숨긴다) */}
+      <ul className="composer-hints" aria-label="넣는 방법">
+        <li>
+          <kbd>{PASTE_KEY}</kbd> 글·이미지·파일 붙여넣기
+        </li>
+        <li>
+          <Icon name="upload" size={13} /> 파일을 창에 끌어다 놓기
+        </li>
+        <li>
+          <kbd>Enter</kbd> 넣기 · <kbd>Shift</kbd>+<kbd>Enter</kbd> 줄바꿈
+        </li>
+      </ul>
     </div>
   )
 }

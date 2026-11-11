@@ -3,6 +3,7 @@ import type { LiveStatus } from '../hooks/useItems'
 import { formatSize } from '../lib/files'
 import { T_INDICATOR } from '../lib/motion'
 import { Icon, Mark, type IconName } from './Icon'
+import { ThemeToggle } from './ThemeToggle'
 
 export type View = 'all' | 'pinned' | 'text' | 'link' | 'image' | 'file'
 
@@ -54,6 +55,8 @@ export function Sidebar(p: Props) {
       <div className="side-brand">
         <Mark size={22} />
         <span className="side-name">Ender Chest</span>
+        <span className="spacer" />
+        <ThemeToggle />
       </div>
       <StatusBadge status={p.status} />
 
@@ -74,7 +77,9 @@ export function Sidebar(p: Props) {
                     }}
                   >
                     {on && <m.span className="side-indicator" layoutId="side-indicator" transition={T_INDICATOR} />}
-                    <Icon name={v.icon} size={16} filled={v.value === 'pinned' && on} />
+                    <span className={`side-ico side-ico-${v.value}`}>
+                      <Icon name={v.icon} size={15} filled={v.value === 'pinned' && on} />
+                    </span>
                     <span className="side-label">{v.label}</span>
                     <span className="side-count">{p.counts[v.value]}</span>
                   </button>
@@ -102,7 +107,9 @@ export function Sidebar(p: Props) {
                       }}
                     >
                       {on && <m.span className="side-indicator" layoutId="side-indicator" transition={T_INDICATOR} />}
-                      <Icon name="monitor" size={16} />
+                      <span className="side-ico side-ico-device">
+                        <Icon name="monitor" size={15} />
+                      </span>
                       <span className="side-label">
                         {s.source}
                         {s.source === p.myDevice && <span className="side-me">이 기기</span>}

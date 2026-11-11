@@ -5,7 +5,9 @@ import { registerSW } from 'virtual:pwa-register'
 import { missingEnv } from './lib/env'
 import { ConfigError } from './components/ConfigError'
 import { Mark } from './components/Icon'
+import { initTheme } from './lib/theme'
 
+initTheme()
 registerSW({ immediate: true })
 
 const root = ReactDOM.createRoot(document.getElementById('root')!)

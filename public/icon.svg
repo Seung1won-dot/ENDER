@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- 흑요석 상자: 둥근 몸체, 뚜껑 선, 가운데 엔더 청록 눈. src/components/Icon.tsx 의 Mark 와 같은 도형 -->
-  <rect width="512" height="512" rx="96" fill="#15161d"/>
-  <rect x="96" y="136" width="320" height="272" rx="48" fill="#23242f" stroke="#3a3b4a" stroke-width="14"/>
-  <path d="M96 232h320" stroke="#3a3b4a" stroke-width="14"/>
-  <rect x="226" y="202" width="60" height="60" rx="16" fill="#4fd1a5"/>
+  <!-- 밝은 상자: 보라 바탕, 흰 몸체, 뚜껑 선, 가운데 민트 눈. src/components/Icon.tsx 의 Mark 와 같은 도형 -->
+  <rect width="512" height="512" rx="96" fill="#5b4ff5"/>
+  <rect x="96" y="136" width="320" height="272" rx="48" fill="#ffffff"/>
+  <path d="M96 232h320" stroke="#5b4ff5" stroke-width="14"/>
+  <rect x="226" y="202" width="60" height="60" rx="16" fill="#2fd9a4" stroke="#ffffff" stroke-width="10"/>
 </svg>

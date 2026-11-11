@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { supabase } from '../lib/supabase'
 import { getDeviceName, setDeviceName } from '../lib/device'
 import { messageOf } from '../lib/errors'
@@ -7,6 +7,7 @@ import type { ExpiryPreset } from '../lib/expiry'
 import { ExpirySegment } from './ExpirySegment'
 import { TokenSection } from './TokenSection'
 import { Icon } from './Icon'
+import { readChoice, setThemeChoice, subscribeTheme, type ThemeChoice } from '../lib/theme'
 import { notifySupported, readNotifyPref, writeNotifyPref } from '../hooks/useNotify'
 
 interface Props {
@@ -17,6 +18,12 @@ interface Props {
   onExpiryChange: (p: ExpiryPreset) => void
   onDeviceChange: (name: string) => void
 }
+
+const THEME_OPTIONS: ReadonlyArray<{ value: ThemeChoice; label: string }> = [
+  { value: 'light', label: '밝게' },
+  { value: 'dark', label: '어둡게' },
+  { value: 'system', label: '시스템 따라가기' },
+]
 
 export function SettingsDialog({ open, onClose, email, expiry, onExpiryChange, onDeviceChange }: Props) {
   const ref = useRef<HTMLDialogElement>(null)
@@ -68,6 +75,8 @@ export function SettingsDialog({ open, onClose, email, expiry, onExpiryChange, o
     onDeviceChange(effective)
   }
 
+  const theme = useSyncExternalStore(subscribeTheme, readChoice)
+
   return (
     <dialog ref={ref} className="dialog" onClose={onClose} aria-labelledby="settings-title">
       <div className="dialog-head">
@@ -93,6 +102,20 @@ export function SettingsDialog({ open, onClose, email, expiry, onExpiryChange, o
           />
           <span className="field-help">항목에 "어느 기기에서 넣었는지" 로 표시돼요.</span>
         </label>
+      </section>
+
+      <section className="dialog-section">
+        <div className="field">
+          <span className="field-label" id="settings-theme-label">화면 테마</span>
+          <div className="row-inline" role="group" aria-labelledby="settings-theme-label">
+            {THEME_OPTIONS.map((o) => (
+              <button key={o.value} type="button" className="chip-btn" aria-pressed={theme === o.value} onClick={() => setThemeChoice(o.value)}>
+                {o.label}
+              </button>
+            ))}
+          </div>
+          <span className="field-help">이 기기에만 저장돼요.</span>
+        </div>
       </section>
 
       <section className="dialog-section">

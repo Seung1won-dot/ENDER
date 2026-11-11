@@ -5,7 +5,7 @@ import { messageOf } from '../lib/errors'
 import { toast } from '../lib/toast'
 import { playChestIntro } from '../lib/intro'
 import { TAP_SCALE } from '../lib/motion'
-import { Mark } from './Icon'
+import { Icon, Mark } from './Icon'
 
 type Mode = 'login' | 'signup'
 
@@ -69,6 +69,26 @@ export function AuthScreen() {
       <p className="auth-tag" data-intro>
         어디서 열어도 같은 내용물이 보이는 나만의 상자
       </p>
+      <ul className="auth-points" data-intro>
+        <li>
+          <span className="how-ico how-paste">
+            <Icon name="clipboard" size={15} />
+          </span>
+          복사한 글·이미지·파일을 붙여넣기 한 번으로 넣어요
+        </li>
+        <li>
+          <span className="how-ico how-drop">
+            <Icon name="monitor" size={15} />
+          </span>
+          다른 기기에서 열면 바로 보여요
+        </li>
+        <li>
+          <span className="how-ico how-type">
+            <Icon name="key" size={15} />
+          </span>
+          내 계정으로만 볼 수 있어요
+        </li>
+      </ul>
 
       <form onSubmit={submit} className="auth-form">
         <label className="field" data-intro>

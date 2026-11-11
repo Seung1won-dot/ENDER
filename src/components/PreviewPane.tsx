@@ -9,7 +9,8 @@ import { domainOf, extBadge, fullDateLabel, itemTitle, previewKindOf } from '../
 import { messageOf } from '../lib/errors'
 import { EASE } from '../lib/motion'
 import type { ItemAction } from './ItemRowView'
-import { Icon } from './Icon'
+import { PASTE_KEY } from '../lib/keys'
+import { Icon, Mark } from './Icon'
 
 interface Props {
   item: ItemRow | null
@@ -217,8 +218,46 @@ export function PreviewPane({ item, api, canShare, copied, onAction, onSaveText,
           </m.div>
         ) : (
           <m.div key="none" className="pv-empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <Icon name="maximize" size={20} />
-            <p>항목을 고르면 여기서 미리 보고 바로 복사·다운로드할 수 있어요.</p>
+            <span className="pv-empty-art" aria-hidden="true">
+              <Mark size={40} />
+            </span>
+            <h2 className="pv-empty-title">여기서 미리 봐요</h2>
+            <p>목록에서 항목을 고르면 내용을 보고 바로 복사·다운로드할 수 있어요.</p>
+            <h3 className="pv-empty-heading">넣는 방법</h3>
+            <ul className="how-list">
+              <li>
+                <span className="how-ico how-paste">
+                  <Icon name="clipboard" size={16} />
+                </span>
+                <span className="how-text">
+                  <strong>
+                    붙여넣기 <kbd>{PASTE_KEY}</kbd>
+                  </strong>
+                  <span>복사한 글·이미지·파일을 화면 어디서든</span>
+                </span>
+              </li>
+              <li>
+                <span className="how-ico how-drop">
+                  <Icon name="upload" size={16} />
+                </span>
+                <span className="how-text">
+                  <strong>끌어다 놓기</strong>
+                  <span>파일 여러 개를 창에 한꺼번에</span>
+                </span>
+              </li>
+              <li>
+                <span className="how-ico how-type">
+                  <Icon name="edit" size={16} />
+                </span>
+                <span className="how-text">
+                  <strong>
+                    적고 <kbd>Enter</kbd>
+                  </strong>
+                  <span>메모나 링크를 위 입력창에</span>
+                </span>
+              </li>
+            </ul>
+            <h3 className="pv-empty-heading">단축키</h3>
             <dl className="shortcut-list">
               <div>
                 <dt>
